@@ -1,5 +1,6 @@
 package bikerboys.pivot;
 
+import bikerboys.pivot.attachmenttype.UUIDCustomAttachedData;
 import bikerboys.pivot.networking.packets.SetSelectedBlockDisplayEntityS2C;
 import bikerboys.pivot.screen.BlockDisplayEntityEditScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -21,9 +22,10 @@ import java.util.UUID;
 
 public class PivotClient implements ClientModInitializer {
 	private static KeyBinding keyBinding;
-	public static UUID selectedBlockDisplayEntity;
 	public static List<UUID> BlockEntitiesInWorld = new ArrayList<>();
-	public static UUID selectedItemDisplayEntities;
+
+
+
 	public static int currentIndex = 0;
 	public static boolean glowing = true;
 	public static boolean advancedmode = false;
@@ -31,6 +33,9 @@ public class PivotClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+
+		ClientTickEvents.END_CLIENT_TICK.register(Scheduler::tick);
+
 		keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.pivot.openeditscreen", // The translation key of the keybinding's name
 				InputUtil.Type.KEYSYM, // The type of the keybinding, KEYSYM for keyboard, MOUSE for mouse.
@@ -45,15 +50,36 @@ public class PivotClient implements ClientModInitializer {
 
 
 		ClientPlayNetworking.registerGlobalReceiver(SetSelectedBlockDisplayEntityS2C.ID, ((payload, context) -> {
+
+			Scheduler.runLater(() -> {
+
+
+
 			String uuid = payload.uuid();
 
-			selectedBlockDisplayEntity = UUID.fromString(uuid);
+
+			UUID selectedBlockDisplayEntity = UUID.fromString(uuid);
+
+			int i = BlockEntitiesInWorld.indexOf(selectedBlockDisplayEntity);
+
+
+			if (i != -1) {
+				currentIndex = i;
+			}
+			System.out.println(i);
+
+			}, 2);
 
 
 		}));
 
 
 	}
+
+
+
+
+
 
 
 	private static void Tick(MinecraftClient minecraftClient) {
@@ -69,7 +95,14 @@ public class PivotClient implements ClientModInitializer {
 			minecraftClient.player.clientWorld.getEntities().forEach((entity -> {
 				if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
 					if (minecraftClient.player.distanceTo(blockDisplayEntity) <= 150) {
-						BlockEntitiesInWorld.add(blockDisplayEntity.getUuid());
+
+						UUIDCustomAttachedData attachedOrCreate = blockDisplayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
+
+
+
+						if (attachedOrCreate.uuid().equals(minecraftClient.player.getUuidAsString()) || attachedOrCreate.uuid().equals("")) {
+							BlockEntitiesInWorld.add(blockDisplayEntity.getUuid());
+						}
 					}
 				}
 			}));

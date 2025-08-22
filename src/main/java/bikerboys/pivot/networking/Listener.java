@@ -1,6 +1,7 @@
 package bikerboys.pivot.networking;
 
 import bikerboys.pivot.networking.packets.*;
+import bikerboys.pivot.util.Util;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -33,7 +34,7 @@ public class Listener {
             @Nullable Quaternionf right_rotation = payload.right_rotation();
 
             @Nullable Vector3f scale1 = payload.scale();
-            
+
             
             Entity entity = null;
 
@@ -43,7 +44,16 @@ public class Listener {
 
 
             if (entity != null) {
+
+
                 if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+                    if (Util.getLockedDisplayEntity(blockDisplayEntity)) {
+                        return;
+                    }
+                    if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
+                        return;
+                    }
+
                     AffineTransformation transformation = DisplayEntity.getTransformation(blockDisplayEntity.getDataTracker());
 
                     // Example: reading parts of the transformation
@@ -86,6 +96,13 @@ public class Listener {
 
 
             if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+                if (Util.getLockedDisplayEntity(blockDisplayEntity)) {
+                    return;
+                }
+                if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
+                    return;
+                }
+
                 Vec3d pos = blockDisplayEntity.getPos();
                 double x = pos.getX();
                 double y = pos.getY();
@@ -120,11 +137,20 @@ public class Listener {
                 blockDisplayEntity.setBlockState(block.getDefaultState());
                 blockDisplayEntity.setPos(player.getX(), player.getY(), player.getZ());
 
+
+
                 if (player.getGameMode().isSurvivalLike()) {
                     player.getMainHandStack().decrement(1);
                 }
 
                 context.player().getWorld().spawnEntity(blockDisplayEntity);
+                Util.setUnlockedDisplayEntity(blockDisplayEntity);
+                Util.setUuidDisplayEntity(blockDisplayEntity, context.player());
+
+                SetSelectedBlockDisplayEntityS2C setSelectedBlockDisplayEntityS2C = new SetSelectedBlockDisplayEntityS2C(blockDisplayEntity.getUuidAsString());
+
+                ServerPlayNetworking.send(player, setSelectedBlockDisplayEntityS2C);
+
             }
 
 
@@ -138,6 +164,14 @@ public class Listener {
 
             if (entity == null) {return;}
             if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+                if (Util.getLockedDisplayEntity(blockDisplayEntity)) {
+                    return;
+                }
+
+                if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
+                    return;
+                }
+
                 BlockState blockState = blockDisplayEntity.getBlockState();
 
                 Block block = blockState.getBlock();
@@ -161,6 +195,14 @@ public class Listener {
             Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
             if (entity == null) {return;}
             if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+
+                if (Util.getLockedDisplayEntity(blockDisplayEntity)) {
+                    return;
+                }
+                if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
+                    return;
+                }
+
                 blockDisplayEntity.setPos(payload.pos().x, payload.pos().y, payload.pos().z);
             }
         });
@@ -175,6 +217,13 @@ public class Listener {
             if (entity == null) return;
 
             if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+                if (Util.getLockedDisplayEntity(blockDisplayEntity)) {
+                    return;
+                }
+                if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
+                    return;
+                }
+
                 Item item = blockDisplayEntity.getBlockState().getBlock().asItem();
 
                 if (item == mainHandStack.getItem()) {
@@ -191,6 +240,8 @@ public class Listener {
                     }
 
                     player.getWorld().spawnEntity(duplicate);
+                    Util.setUnlockedDisplayEntity(duplicate);
+                    Util.setUuidDisplayEntity(duplicate, context.player());
 
                 } else {
                     player.sendMessage(Text.literal("You are not holding the block display that you are trying to duplicate!"), true);
@@ -198,6 +249,27 @@ public class Listener {
 
             }
 
+
+        });
+
+
+        ServerPlayNetworking.registerGlobalReceiver(LockDisplayEntity.ID, (payload, context) -> {
+            String uuid = payload.uuid();
+            Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
+
+
+            if (entity == null) {return;}
+            if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+
+                if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
+                    return;
+                }
+
+                boolean lockedDisplayEntity = Util.getLockedDisplayEntity(blockDisplayEntity);
+
+                Util.setLockedDisplayEntity(blockDisplayEntity, !lockedDisplayEntity);
+
+            }
 
         });
 

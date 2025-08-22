@@ -1,6 +1,21 @@
 package bikerboys.pivot.util;
 
+import bikerboys.pivot.Pivot;
+import bikerboys.pivot.attachmenttype.LockedCustomAttachedData;
+import bikerboys.pivot.attachmenttype.UUIDCustomAttachedData;
+
+import com.mojang.serialization.DynamicOps;
+import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.storage.NbtWriteView;
+import net.minecraft.storage.WriteView;
+import net.minecraft.util.ErrorReporter;
 import org.joml.Quaternionf;
+
+import java.util.UUID;
 
 public class Util {
 
@@ -41,6 +56,62 @@ public class Util {
         float w = aw*bw - ax*bx - ay*by - az*bz;
         return new Quaternionf(x, y, z, w);
     }
+
+
+    public static String getUuidFromDisplayEntity(DisplayEntity displayEntity) {
+
+        UUIDCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
+
+        return attachedOrCreate.uuid();
+    }
+
+    public static void setUuidDisplayEntity(DisplayEntity displayEntity, String string) {
+        UUIDCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
+
+       displayEntity.setAttached(Pivot.UUID_ATTACHMENT, attachedOrCreate.setUuid(string));
+    }
+
+    public static void setUuidDisplayEntity(DisplayEntity displayEntity, PlayerEntity player) {
+        UUIDCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
+
+        displayEntity.setAttached(Pivot.UUID_ATTACHMENT, attachedOrCreate.setUuid(player.getUuidAsString()));
+    }
+
+    public static void setUuidDisplayEntity(DisplayEntity displayEntity, ServerPlayerEntity player) {
+        UUIDCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
+
+        displayEntity.setAttached(Pivot.UUID_ATTACHMENT, attachedOrCreate.setUuid(player.getUuidAsString()));
+    }
+
+
+    public static void setLockedDisplayEntity(DisplayEntity displayEntity) {
+        LockedCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.LOCKED_ATTACHMENT);
+
+        displayEntity.setAttached(Pivot.LOCKED_ATTACHMENT, attachedOrCreate.setLocked(true));
+    }
+
+    public static void setLockedDisplayEntity(DisplayEntity displayEntity, boolean b) {
+        LockedCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.LOCKED_ATTACHMENT);
+
+        displayEntity.setAttached(Pivot.LOCKED_ATTACHMENT, attachedOrCreate.setLocked(b));
+    }
+
+    public static boolean getLockedDisplayEntity(DisplayEntity displayEntity) {
+        return displayEntity.getAttachedOrCreate(Pivot.LOCKED_ATTACHMENT).locked();
+    }
+
+
+    public static void setUnlockedDisplayEntity(DisplayEntity displayEntity) {
+        LockedCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.LOCKED_ATTACHMENT);
+
+        displayEntity.setAttached(Pivot.LOCKED_ATTACHMENT, attachedOrCreate.setLocked(false));
+    }
+
+
+
+
+
+
 
     public static float[] quaternionToEulerDegrees(Quaternionf q) {
         // copy & normalize to avoid mutating the original

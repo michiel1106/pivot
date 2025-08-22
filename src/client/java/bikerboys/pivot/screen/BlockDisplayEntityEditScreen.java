@@ -1,13 +1,16 @@
 package bikerboys.pivot.screen;
 
 import bikerboys.pivot.PivotClient;
+import bikerboys.pivot.Scheduler;
 import bikerboys.pivot.networking.packets.*;
+import bikerboys.pivot.util.Util;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.*;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.*;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.text.Text;
@@ -66,6 +69,8 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
     // Buttons
     private final ButtonComponent advancedModeButton = Components.button(Text.literal("Advanced Mode"), btn -> PivotClient.advancedmode = !PivotClient.advancedmode);
     private final ButtonComponent toggleGlowButton = Components.button(Text.literal("Toggle Glowing"), btn -> PivotClient.glowing = !PivotClient.glowing);
+
+    private final ButtonComponent lockButton = Components.button(Text.literal(""), press -> toggleLockDisplayEntity());
 
     public BlockDisplayEntityEditScreen() {
         super(Text.literal(""));
@@ -199,6 +204,10 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
                         .horizontalSizing(Sizing.fixed(130))
         );
 
+
+
+        takeEntityWrapper.child(lockButton.horizontalSizing(Sizing.fixed(130)));
+
         takeEntityWrapper.positioning(Positioning.absolute(this.width - 125 - 10, 250));
 
 
@@ -206,6 +215,27 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
         FlowLayout posWrapper = Containers.verticalFlow(Sizing.content(), Sizing.content());
         posWrapper.alignment(HorizontalAlignment.LEFT, VerticalAlignment.CENTER);
+
+
+        FlowLayout applyRow = Containers.horizontalFlow(Sizing.fixed(200), Sizing.content());
+        applyRow.alignment(HorizontalAlignment.RIGHT, VerticalAlignment.CENTER);
+
+        applyRow.child(
+                Components.button(Text.literal("Apply Position"), btn -> {
+                    if (displayEntity != null) {
+                        try {
+                            double newX = Double.parseDouble(positionXbox.getText());
+                            double newY = Double.parseDouble(positionYbox.getText());
+                            double newZ = Double.parseDouble(positionZbox.getText());
+                            sendPositionUpdate(newX, newY, newZ);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }).horizontalSizing(Sizing.fixed(129))
+        );
+
+
+// add above the X/Y/Z rows
+        posWrapper.child(applyRow);
 
         // X row
         // X row
@@ -310,8 +340,10 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         });
          */
 
+
+
         // position block on screen
-        posWrapper.positioning(Positioning.absolute(10, 400));
+        posWrapper.positioning(Positioning.absolute(10, 387));
         root.child(posWrapper);
 
 
@@ -356,12 +388,32 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
     }
 
+
+
+    private void toggleLockDisplayEntity() {
+        if  (displayEntity == null) return;
+
+        LockDisplayEntity LockDisplayEntity = new LockDisplayEntity(displayEntity.getUuidAsString());
+
+        ClientPlayNetworking.send(LockDisplayEntity);
+
+
+
+
+
+
+    }
+
     private void duplicateDisplayEntity() {
         if  (displayEntity == null) return;
 
         DuplicateBlockDisplay duplicateBlockDisplay = new DuplicateBlockDisplay(displayEntity.getUuidAsString());
 
         ClientPlayNetworking.send(duplicateBlockDisplay);
+
+
+
+
 
 
 
@@ -388,6 +440,12 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
         NewBlockDisplayEntity newBlockDisplayEntity = new NewBlockDisplayEntity("");
         ClientPlayNetworking.send(newBlockDisplayEntity);
+
+
+
+     
+
+
     }
 
 
@@ -562,6 +620,15 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void tick() {
         super.tick();
+
+        if (displayEntity != null) {
+            boolean lockedDisplayEntity = Util.getLockedDisplayEntity(displayEntity);
+            if (lockedDisplayEntity) {
+                lockButton.setMessage(Text.literal("Unlock Display Entity"));
+            } else {
+                lockButton.setMessage(Text.literal("Lock Display Entity"));
+            }
+        }
 
         if (!PivotClient.BlockEntitiesInWorld.isEmpty()) {
             if (PivotClient.currentIndex >= PivotClient.BlockEntitiesInWorld.size()) {

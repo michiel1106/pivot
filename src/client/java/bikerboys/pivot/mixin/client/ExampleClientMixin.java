@@ -31,8 +31,9 @@ public abstract class ExampleClientMixin {
 						if (PivotClient.glowing) {
 							cir.setReturnValue(true);
 						}
+					} else {
+						cir.setReturnValue(false);
 					}
-
 
 				}
 

@@ -1,35 +1,38 @@
 package bikerboys.pivot;
 
+import bikerboys.pivot.attachmenttype.LockedCustomAttachedData;
+import bikerboys.pivot.attachmenttype.UUIDCustomAttachedData;
 import bikerboys.pivot.networking.Listener;
 import bikerboys.pivot.networking.packets.*;
-import io.netty.buffer.ByteBuf;
+
 import net.fabricmc.api.ModInitializer;
 
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
-import org.joml.Quaterniond;
+import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class Pivot implements ModInitializer {
 	public static final String MOD_ID = "pivot";
 
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+	public static final AttachmentType<UUIDCustomAttachedData> UUID_ATTACHMENT = AttachmentRegistry.create(
+					Identifier.of(MOD_ID,"uuid"),
+					builder->builder // we are using a builder chain here to configure the attachment data type
+							.initializer(()->UUIDCustomAttachedData.DEFAULT) // a default value to provide if you dont supply one
+							.persistent(UUIDCustomAttachedData.CODEC)
+							.syncWith(UUIDCustomAttachedData.PACKET_CODEC, AttachmentSyncPredicate.all()));
+
+	public static final AttachmentType<LockedCustomAttachedData> LOCKED_ATTACHMENT = AttachmentRegistry.create(
+			Identifier.of(MOD_ID,"locked"),
+			builder->builder // we are using a builder chain here to configure the attachment data type
+					.initializer(()->LockedCustomAttachedData.DEFAULT) // a default value to provide if you dont supply one
+					.persistent(LockedCustomAttachedData.CODEC)
+					.syncWith(LockedCustomAttachedData.PACKET_CODEC, AttachmentSyncPredicate.all()));
 
 	@Override
 	public void onInitialize() {
@@ -42,6 +45,7 @@ public class Pivot implements ModInitializer {
 		PayloadTypeRegistry.playC2S().register(TakebackBlockEntity.ID, TakebackBlockEntity.CODEC);
 		PayloadTypeRegistry.playC2S().register(UpdateBlockDisplayPos.ID, UpdateBlockDisplayPos.CODEC);
 		PayloadTypeRegistry.playC2S().register(DuplicateBlockDisplay.ID, DuplicateBlockDisplay.CODEC);
+		PayloadTypeRegistry.playC2S().register(LockDisplayEntity.ID, LockDisplayEntity.CODEC);
 
 
 		Listener.registerListeners();
