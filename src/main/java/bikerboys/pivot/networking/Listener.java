@@ -46,7 +46,7 @@ public class Listener {
             if (entity != null) {
 
 
-                if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+                if (entity instanceof DisplayEntity blockDisplayEntity) {
                     if (Util.getLockedDisplayEntity(blockDisplayEntity)) {
                         return;
                     }
@@ -95,7 +95,7 @@ public class Listener {
             Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
 
 
-            if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+            if (entity instanceof DisplayEntity blockDisplayEntity) {
                 if (Util.getLockedDisplayEntity(blockDisplayEntity)) {
                     return;
                 }
@@ -125,7 +125,6 @@ public class Listener {
 
             ServerPlayerEntity player = context.player();
 
-            Vec3d pos = player.getPos();
             Item item = player.getMainHandStack().getItem();
 
             if (item == Items.AIR) return;
@@ -150,8 +149,41 @@ public class Listener {
                 SetSelectedBlockDisplayEntityS2C setSelectedBlockDisplayEntityS2C = new SetSelectedBlockDisplayEntityS2C(blockDisplayEntity.getUuidAsString());
 
                 ServerPlayNetworking.send(player, setSelectedBlockDisplayEntityS2C);
-
             }
+
+
+        }));
+
+        ServerPlayNetworking.registerGlobalReceiver(NewItemDisplayEntity.ID, ((payload, context) -> {
+
+            ServerPlayerEntity player = context.player();
+
+
+            Item item = player.getMainHandStack().getItem();
+
+            if (item == Items.AIR) return;
+
+
+
+            DisplayEntity.ItemDisplayEntity itemDisplayEntity = new DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, context.player().getWorld());
+
+
+
+            itemDisplayEntity.setItemStack(new ItemStack(item));
+
+            itemDisplayEntity.setPos(player.getX(), player.getY(), player.getZ());
+
+            if (player.getGameMode().isSurvivalLike()) {
+                player.getMainHandStack().decrement(1);
+            }
+
+            context.player().getWorld().spawnEntity(itemDisplayEntity);
+            Util.setUnlockedDisplayEntity(itemDisplayEntity);
+            Util.setUuidDisplayEntity(itemDisplayEntity, context.player());
+
+            SetSelectedBlockDisplayEntityS2C setSelectedBlockDisplayEntityS2C = new SetSelectedBlockDisplayEntityS2C(itemDisplayEntity.getUuidAsString());
+
+            ServerPlayNetworking.send(player, setSelectedBlockDisplayEntityS2C);
 
 
         }));
@@ -185,8 +217,29 @@ public class Listener {
                 }
 
                 entity.discard();
+            } else if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplayEntity) {
+                if (Util.getLockedDisplayEntity(itemDisplayEntity)) {
+                    return;
+                }
 
+                if (!Util.getUuidFromDisplayEntity(itemDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(itemDisplayEntity).isEmpty()) {
+                    return;
+                }
+
+                ItemStack itemStack = itemDisplayEntity.getItemStack();
+
+
+
+                ServerPlayerEntity player = context.player();
+
+                if (player.getGameMode().isSurvivalLike()) {
+                    player.giveItemStack(itemStack);
+                }
+
+                entity.discard();
             }
+
+
         }));
 
 
@@ -194,7 +247,7 @@ public class Listener {
             String uuid = payload.uuid();
             Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
             if (entity == null) {return;}
-            if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+            if (entity instanceof DisplayEntity blockDisplayEntity) {
 
                 if (Util.getLockedDisplayEntity(blockDisplayEntity)) {
                     return;
@@ -244,7 +297,39 @@ public class Listener {
                     Util.setUuidDisplayEntity(duplicate, context.player());
 
                 } else {
-                    player.sendMessage(Text.literal("You are not holding the block display that you are trying to duplicate!"), true);
+                    player.sendMessage(Text.literal("You are not holding the block that you are trying to duplicate!"), true);
+                }
+            } else if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplayEntity) {
+                if (Util.getLockedDisplayEntity(itemDisplayEntity)) {
+                    return;
+                }
+                if (!Util.getUuidFromDisplayEntity(itemDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(itemDisplayEntity).isEmpty()) {
+                    return;
+                }
+
+                Item item = itemDisplayEntity.getItemStack().getItem();
+
+                if (item == mainHandStack.getItem()) {
+                    DisplayEntity.ItemDisplayEntity duplicate = new DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, player.getWorld());
+
+                    AffineTransformation transformation = DisplayEntity.getTransformation(itemDisplayEntity.getDataTracker());
+
+                    duplicate.setItemStack(new ItemStack(itemDisplayEntity.getItemStack().getItem()));
+                    duplicate.setTransformation(transformation);
+                    duplicate.setItemDisplayContext(itemDisplayEntity.getItemDisplayContext());
+                    duplicate.setPosition(itemDisplayEntity.getPos());
+
+                    if (player.getGameMode().isSurvivalLike()) {
+                        mainHandStack.decrement(1);
+                    }
+
+                    player.getWorld().spawnEntity(duplicate);
+
+                    Util.setUnlockedDisplayEntity(duplicate);
+                    Util.setUuidDisplayEntity(duplicate, context.player());
+
+                } else {
+                    player.sendMessage(Text.literal("You are not holding the item that you are trying to duplicate!"), true);
                 }
 
             }
@@ -259,7 +344,7 @@ public class Listener {
 
 
             if (entity == null) {return;}
-            if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+            if (entity instanceof DisplayEntity blockDisplayEntity) {
 
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
                     return;

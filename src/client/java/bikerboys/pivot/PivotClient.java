@@ -22,7 +22,8 @@ import java.util.UUID;
 
 public class PivotClient implements ClientModInitializer {
 	private static KeyBinding keyBinding;
-	public static List<UUID> BlockEntitiesInWorld = new ArrayList<>();
+	public static List<UUID> DisplayEntitiesInWorld = new ArrayList<>();
+
 
 
 
@@ -60,7 +61,7 @@ public class PivotClient implements ClientModInitializer {
 
 			UUID selectedBlockDisplayEntity = UUID.fromString(uuid);
 
-			int i = BlockEntitiesInWorld.indexOf(selectedBlockDisplayEntity);
+			int i = DisplayEntitiesInWorld.indexOf(selectedBlockDisplayEntity);
 
 
 			if (i != -1) {
@@ -90,10 +91,10 @@ public class PivotClient implements ClientModInitializer {
 		if (minecraftClient.player != null) {
 
 			// Clear list first (or just re-create a new one)
-			BlockEntitiesInWorld.clear();
+			DisplayEntitiesInWorld.clear();
 
 			minecraftClient.player.clientWorld.getEntities().forEach((entity -> {
-				if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+				if (entity instanceof DisplayEntity blockDisplayEntity) {
 					if (minecraftClient.player.distanceTo(blockDisplayEntity) <= 150) {
 
 						UUIDCustomAttachedData attachedOrCreate = blockDisplayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
@@ -101,17 +102,17 @@ public class PivotClient implements ClientModInitializer {
 
 
 						if (attachedOrCreate.uuid().equals(minecraftClient.player.getUuidAsString()) || attachedOrCreate.uuid().equals("")) {
-							BlockEntitiesInWorld.add(blockDisplayEntity.getUuid());
+							DisplayEntitiesInWorld.add(blockDisplayEntity.getUuid());
 						}
 					}
 				}
 			}));
 
 			// Clamp currentIndex to valid range or reset to 0 if empty
-			if (BlockEntitiesInWorld.isEmpty()) {
+			if (DisplayEntitiesInWorld.isEmpty()) {
 				currentIndex = 0;
-			} else if (currentIndex >= BlockEntitiesInWorld.size()) {
-				currentIndex = BlockEntitiesInWorld.size() - 1;
+			} else if (currentIndex >= DisplayEntitiesInWorld.size()) {
+				currentIndex = DisplayEntitiesInWorld.size() - 1;
 			}
 		}
 	}

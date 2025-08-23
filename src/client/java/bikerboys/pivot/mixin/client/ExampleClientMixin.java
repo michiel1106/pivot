@@ -23,8 +23,8 @@ public abstract class ExampleClientMixin {
 		if (entity instanceof DisplayEntity displayEntity) {
 			if (EnvType.CLIENT.equals(FabricLoader.getInstance().getEnvironmentType())) {
 
-				if (!PivotClient.BlockEntitiesInWorld.isEmpty()) {
-					UUID uuid = PivotClient.BlockEntitiesInWorld.get(PivotClient.currentIndex);
+				if (!PivotClient.DisplayEntitiesInWorld.isEmpty()) {
+					UUID uuid = PivotClient.DisplayEntitiesInWorld.get(PivotClient.currentIndex);
 
 
 					if (displayEntity.getUuid().equals(uuid)) {

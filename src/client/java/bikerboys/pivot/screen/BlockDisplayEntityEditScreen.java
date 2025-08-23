@@ -1,18 +1,19 @@
 package bikerboys.pivot.screen;
 
 import bikerboys.pivot.PivotClient;
-import bikerboys.pivot.Scheduler;
 import bikerboys.pivot.networking.packets.*;
 import bikerboys.pivot.util.Util;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.*;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
+import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.state.property.Property;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.AffineTransformation;
 import net.minecraft.util.math.Vec3d;
@@ -29,6 +30,8 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
     private boolean suppressUpdates = false;
     private DisplayEntity displayEntity;
 
+    private ScrollContainer<Component> blockStateScroll = null;
+    private FlowLayout blockStateFlow = null;
 
     // Euler sliders
     private final DiscreteSliderComponent rotXSlider = Components.discreteSlider(Sizing.fixed(140), -180f, 180f).decimalPlaces(2);
@@ -51,11 +54,6 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
     private final DiscreteSliderComponent transYSlider = Components.discreteSlider(Sizing.fixed(140), -2.0, 2.0).decimalPlaces(2);
     private final DiscreteSliderComponent transZSlider = Components.discreteSlider(Sizing.fixed(140), -2.0, 2.0).decimalPlaces(2);
 
-    // Quaternion sliders
-    private final DiscreteSliderComponent qxSlider = Components.discreteSlider(Sizing.fixed(120), -1.0f, 1.0f).decimalPlaces(2);
-    private final DiscreteSliderComponent qySlider = Components.discreteSlider(Sizing.fixed(120), -1.0f, 1.0f).decimalPlaces(2);
-    private final DiscreteSliderComponent qzSlider = Components.discreteSlider(Sizing.fixed(120), -1.0f, 1.0f).decimalPlaces(2);
-    private final DiscreteSliderComponent qwSlider = Components.discreteSlider(Sizing.fixed(120), -1.0f, 1.0f).decimalPlaces(2);
 
 
     ButtonComponent tZeroX = Components.button(Text.literal("0"), press -> transXSlider.setFromDiscreteValue(0.0));
@@ -184,31 +182,35 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         newEntityWrapper.alignment(HorizontalAlignment.LEFT, VerticalAlignment.CENTER);
 
         newEntityWrapper.child(
-                Components.button(Text.literal("New Display Entity"), press -> newdisplayEntity())
+                Components.button(Text.literal("New Block Display Entity"), press -> newBlockdisplayEntity())
+                        .horizontalSizing(Sizing.fixed(130))
+        );
+
+        newEntityWrapper.child(
+                Components.button(Text.literal("New Item Display Entity"), press -> newItemdisplayEntity())
                         .horizontalSizing(Sizing.fixed(130))
         );
 
         newEntityWrapper.positioning(Positioning.absolute(this.width - 125 - 10, 230));
 
 
-        FlowLayout takeEntityWrapper = Containers.verticalFlow(Sizing.content(), Sizing.content());
-        takeEntityWrapper.alignment(HorizontalAlignment.LEFT, VerticalAlignment.CENTER);
 
-        takeEntityWrapper.child(
+
+        newEntityWrapper.child(
                 Components.button(Text.literal("Remove Display Entity"), press -> removeDisplayEntity())
                         .horizontalSizing(Sizing.fixed(130))
         );
 
-        takeEntityWrapper.child(
+        newEntityWrapper.child(
                 Components.button(Text.literal("Duplicate Display Entity"), press -> duplicateDisplayEntity())
                         .horizontalSizing(Sizing.fixed(130))
         );
 
 
 
-        takeEntityWrapper.child(lockButton.horizontalSizing(Sizing.fixed(130)));
+        newEntityWrapper.child(lockButton.horizontalSizing(Sizing.fixed(130)));
 
-        takeEntityWrapper.positioning(Positioning.absolute(this.width - 125 - 10, 250));
+        newEntityWrapper.positioning(Positioning.absolute(this.width - 125 - 10, 225));
 
 
 
@@ -340,6 +342,34 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         });
          */
 
+        blockStateFlow = Containers.verticalFlow(Sizing.content(), Sizing.content());// optional spacing
+
+
+
+
+        blockStateScroll = Containers.verticalScroll(
+                        Sizing.fixed(200), // width of scroll area
+                        Sizing.fixed(100), // height of scroll area
+                        blockStateFlow
+                );
+
+                blockStateScroll.scrollbarThiccness(20)
+                .scrollbar(ScrollContainer.Scrollbar.vanilla())
+                .padding(Insets.of(5))
+                .surface(Surface.DARK_PANEL);
+
+
+
+
+
+
+
+// Position in your UI
+        blockStateScroll.positioning(Positioning.absolute(this.width - 225 - 10, 350));
+
+// Add to root
+        root.child(blockStateScroll);
+
 
 
         // position block on screen
@@ -362,24 +392,14 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         root.child(dropdownWrapper);
 
 
-        // --- Quaternion sliders (bottom-right) ---
-        FlowLayout quaternionWrap = Containers.verticalFlow(Sizing.content(), Sizing.content());
-// position near bottom-right with a modest offset (adjust numbers if you want it closer/farther)
-        quaternionWrap.positioning(Positioning.absolute(this.width - 130, this.height - 110));
-        quaternionWrap.alignment(HorizontalAlignment.RIGHT, VerticalAlignment.BOTTOM);
-
-        quaternionWrap.child(qxSlider.horizontalSizing(Sizing.fixed(120)));
-        quaternionWrap.child(qySlider.horizontalSizing(Sizing.fixed(120)));
-        quaternionWrap.child(qzSlider.horizontalSizing(Sizing.fixed(120)));
-        quaternionWrap.child(qwSlider.horizontalSizing(Sizing.fixed(120)));
 
         // --- Add everything to root ---
         root.child(advWrap);
         root.child(buttons);
         root.child(leftColumn);
-        root.child(quaternionWrap);
+
         root.child(newEntityWrapper);
-        root.child(takeEntityWrapper);
+
 
 
         FlowLayout axisControls = Containers.horizontalFlow(Sizing.content(), Sizing.content());
@@ -388,6 +408,15 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
     }
 
+    private void handleBlockStateClick(Property<?> state) {
+
+    }
+
+
+    private void newItemdisplayEntity() {
+        NewItemDisplayEntity NewItemDisplayEntity = new NewItemDisplayEntity("");
+        ClientPlayNetworking.send(NewItemDisplayEntity);
+    }
 
 
     private void toggleLockDisplayEntity() {
@@ -436,14 +465,14 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         ClientPlayNetworking.send(TakebackBlockEntity);
     }
 
-    public void newdisplayEntity() {
+    public void newBlockdisplayEntity() {
 
         NewBlockDisplayEntity newBlockDisplayEntity = new NewBlockDisplayEntity("");
         ClientPlayNetworking.send(newBlockDisplayEntity);
 
 
 
-     
+
 
 
     }
@@ -481,13 +510,6 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         transYSlider.onChanged().subscribe(v -> { if (!suppressUpdates) updatetransformation(); });
         transZSlider.onChanged().subscribe(v -> { if (!suppressUpdates) updatetransformation(); });
 
-
-
-        // Quaternion slider updates
-        qxSlider.onChanged().subscribe(v -> { if (!suppressUpdates) updateBlockRotationFromQuaternion(); });
-        qySlider.onChanged().subscribe(v -> { if (!suppressUpdates) updateBlockRotationFromQuaternion(); });
-        qzSlider.onChanged().subscribe(v -> { if (!suppressUpdates) updateBlockRotationFromQuaternion(); });
-        qwSlider.onChanged().subscribe(v -> { if (!suppressUpdates) updateBlockRotationFromQuaternion(); });
 
 
 
@@ -538,8 +560,8 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
 
     private void switchEntity(int direction) {
-        if (PivotClient.BlockEntitiesInWorld.isEmpty()) return;
-        PivotClient.currentIndex = (PivotClient.currentIndex + direction + PivotClient.BlockEntitiesInWorld.size()) % PivotClient.BlockEntitiesInWorld.size();
+        if (PivotClient.DisplayEntitiesInWorld.isEmpty()) return;
+        PivotClient.currentIndex = (PivotClient.currentIndex + direction + PivotClient.DisplayEntitiesInWorld.size()) % PivotClient.DisplayEntitiesInWorld.size();
         tick = 0;
     }
 
@@ -554,35 +576,10 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
         sendRotationUpdate(q);
 
-        // Sync quaternion sliders
-        suppressUpdates = true;
-        qxSlider.setFromDiscreteValue(q.x);
-        qySlider.setFromDiscreteValue(q.y);
-        qzSlider.setFromDiscreteValue(q.z);
-        qwSlider.setFromDiscreteValue(q.w);
-        suppressUpdates = false;
+
     }
 
-    private void updateBlockRotationFromQuaternion() {
-        if (displayEntity == null) return;
 
-        Quaternionf q = new Quaternionf(
-                (float) qxSlider.discreteValue(),
-                (float) qySlider.discreteValue(),
-                (float) qzSlider.discreteValue(),
-                (float) qwSlider.discreteValue()
-        );
-
-        sendRotationUpdate(q);
-
-        // Sync Euler sliders
-        suppressUpdates = true;
-        float[] eulers = quaternionToEulerDegrees(q);
-        rotXSlider.setFromDiscreteValue(eulers[0]);
-        rotYSlider.setFromDiscreteValue(eulers[1]);
-        rotZSlider.setFromDiscreteValue(eulers[2]);
-        suppressUpdates = false;
-    }
 
     private void sendRotationUpdate(Quaternionf q) {
         if (displayEntity == null) return;
@@ -628,19 +625,49 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
             } else {
                 lockButton.setMessage(Text.literal("Lock Display Entity"));
             }
+        } else {
+            lockButton.setMessage(Text.literal("Lock Display Entity"));
         }
 
-        if (!PivotClient.BlockEntitiesInWorld.isEmpty()) {
-            if (PivotClient.currentIndex >= PivotClient.BlockEntitiesInWorld.size()) {
+        if (!PivotClient.DisplayEntitiesInWorld.isEmpty()) {
+            if (PivotClient.currentIndex >= PivotClient.DisplayEntitiesInWorld.size()) {
                 PivotClient.currentIndex = 0;
             }
-            displayEntity = PivotClient.getDisplayEntity(PivotClient.BlockEntitiesInWorld.get(PivotClient.currentIndex));
+            displayEntity = PivotClient.getDisplayEntity(PivotClient.DisplayEntitiesInWorld.get(PivotClient.currentIndex));
         } else {
             displayEntity = null;
         }
 
         // On first tick after switching entity, load values into sliders
         if (tick == 0 && displayEntity != null) {
+
+            if (displayEntity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+
+
+                blockStateFlow.clearChildren();
+
+
+
+                BlockState state = blockDisplayEntity.getBlockState().getBlock().getDefaultState();
+
+
+
+
+                System.out.println(state.getProperties());
+
+                state.getProperties().forEach((property1 -> {
+
+
+                    blockStateFlow.child(Components.button(Text.literal(property1.getName()), btn -> {
+                        handleBlockStateClick(property1);
+                    }).horizontalSizing(Sizing.fixed(120)));
+                }));
+
+            }
+
+
+
+
             AffineTransformation transformation = DisplayEntity.getTransformation(displayEntity.getDataTracker());
             Quaternionf rightRot = transformation.getRightRotation();
             Vector3f scale = transformation.getScale();
@@ -648,10 +675,7 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
             float[] eulers = quaternionToEulerDegrees(rightRot);
 
             suppressUpdates = true;
-            qxSlider.setFromDiscreteValue(rightRot.x);
-            qySlider.setFromDiscreteValue(rightRot.y);
-            qzSlider.setFromDiscreteValue(rightRot.z);
-            qwSlider.setFromDiscreteValue(rightRot.w);
+
 
             rotXSlider.setFromDiscreteValue(eulers[0]);
             rotYSlider.setFromDiscreteValue(eulers[1]);
@@ -673,12 +697,6 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         }
         tick++;
 
-
-
-        qxSlider.visible = PivotClient.advancedmode;
-        qySlider.visible = PivotClient.advancedmode;
-        qzSlider.visible = PivotClient.advancedmode;
-        qwSlider.visible = PivotClient.advancedmode;
 
     }
 
