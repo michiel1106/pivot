@@ -5,21 +5,29 @@ import bikerboys.pivot.util.Util;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.command.argument.ItemPredicateArgumentType;
+import net.minecraft.command.argument.ItemStackArgumentType;
+import net.minecraft.datafixer.fix.VillagerCanPickUpLootFix;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.CraftingInventory;
+import net.minecraft.item.*;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.state.property.Property;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.AffineTransformation;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 
 public class Listener {
@@ -47,11 +55,14 @@ public class Listener {
 
 
                 if (entity instanceof DisplayEntity blockDisplayEntity) {
+
                     if (Util.getLockedDisplayEntity(blockDisplayEntity)) {
                         return;
                     }
                     if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                        return;
+                        if (!context.player().hasPermissionLevel(2)) {
+                            return;
+                        }
                     }
 
                     AffineTransformation transformation = DisplayEntity.getTransformation(blockDisplayEntity.getDataTracker());
@@ -100,7 +111,9 @@ public class Listener {
                     return;
                 }
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                    return;
+                    if (!context.player().hasPermissionLevel(2)) {
+                        return;
+                    }
                 }
 
                 Vec3d pos = blockDisplayEntity.getPos();
@@ -150,6 +163,26 @@ public class Listener {
 
                 ServerPlayNetworking.send(player, setSelectedBlockDisplayEntityS2C);
             }
+
+            if (item == Items.FLINT_AND_STEEL) {
+                DisplayEntity.BlockDisplayEntity blockDisplayEntity = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, context.player().getWorld());
+
+                if (player.getGameMode().isSurvivalLike()) {
+                    player.getMainHandStack().damage(1, player);
+                }
+
+                blockDisplayEntity.setBlockState(Blocks.FIRE.getDefaultState());
+                blockDisplayEntity.setPos(player.getX(), player.getY(), player.getZ());
+
+                context.player().getWorld().spawnEntity(blockDisplayEntity);
+                Util.setUnlockedDisplayEntity(blockDisplayEntity);
+                Util.setUuidDisplayEntity(blockDisplayEntity, context.player());
+
+                SetSelectedBlockDisplayEntityS2C setSelectedBlockDisplayEntityS2C = new SetSelectedBlockDisplayEntityS2C(blockDisplayEntity.getUuidAsString());
+
+                ServerPlayNetworking.send(player, setSelectedBlockDisplayEntityS2C);
+            }
+
 
 
         }));
@@ -201,10 +234,24 @@ public class Listener {
                 }
 
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                    return;
+                    if (!context.player().hasPermissionLevel(2)) {
+                        return;
+                    }
                 }
 
-                BlockState blockState = blockDisplayEntity.getBlockState();
+                BlockState blockState;
+
+                if (Util.getOriginalBlockDisplayEntity(blockDisplayEntity).equalsIgnoreCase("")) {
+                    blockState = blockDisplayEntity.getBlockState();
+                } else {
+                    Block blockfromid = Registries.BLOCK.get(Identifier.of(Util.getOriginalBlockDisplayEntity(blockDisplayEntity)));
+
+                    if (blockfromid != Blocks.AIR) {
+                        blockState = blockfromid.getDefaultState();
+                    } else {
+                        blockState = blockDisplayEntity.getBlockState();
+                    }
+                }
 
                 Block block = blockState.getBlock();
 
@@ -223,7 +270,9 @@ public class Listener {
                 }
 
                 if (!Util.getUuidFromDisplayEntity(itemDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(itemDisplayEntity).isEmpty()) {
-                    return;
+                    if (!context.player().hasPermissionLevel(2)) {
+                        return;
+                    }
                 }
 
                 ItemStack itemStack = itemDisplayEntity.getItemStack();
@@ -253,7 +302,9 @@ public class Listener {
                     return;
                 }
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                    return;
+                    if (!context.player().hasPermissionLevel(2)) {
+                        return;
+                    }
                 }
 
                 blockDisplayEntity.setPos(payload.pos().x, payload.pos().y, payload.pos().z);
@@ -274,12 +325,17 @@ public class Listener {
                     return;
                 }
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                    return;
+                    if (!context.player().hasPermissionLevel(2)) {
+                        return;
+                    }
                 }
 
                 Item item = blockDisplayEntity.getBlockState().getBlock().asItem();
 
-                if (item == mainHandStack.getItem()) {
+
+
+
+                if (item == mainHandStack.getItem() || blockDisplayEntity.getBlockState().isOf(Blocks.FIRE) || blockDisplayEntity.getBlockState().isOf(Blocks.SOUL_FIRE)) {
                     DisplayEntity.BlockDisplayEntity duplicate = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, player.getWorld());
 
                     AffineTransformation transformation = DisplayEntity.getTransformation(blockDisplayEntity.getDataTracker());
@@ -299,12 +355,15 @@ public class Listener {
                 } else {
                     player.sendMessage(Text.literal("You are not holding the block that you are trying to duplicate!"), true);
                 }
+
             } else if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplayEntity) {
                 if (Util.getLockedDisplayEntity(itemDisplayEntity)) {
                     return;
                 }
                 if (!Util.getUuidFromDisplayEntity(itemDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(itemDisplayEntity).isEmpty()) {
-                    return;
+                    if (!context.player().hasPermissionLevel(2)) {
+                        return;
+                    }
                 }
 
                 Item item = itemDisplayEntity.getItemStack().getItem();
@@ -347,7 +406,12 @@ public class Listener {
             if (entity instanceof DisplayEntity blockDisplayEntity) {
 
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                    return;
+
+
+                    if (!context.player().hasPermissionLevel(2)) {
+                        return;
+                    }
+
                 }
 
                 boolean lockedDisplayEntity = Util.getLockedDisplayEntity(blockDisplayEntity);
@@ -359,6 +423,216 @@ public class Listener {
         });
 
 
+
+
+
+
+
+
+        ServerPlayNetworking.registerGlobalReceiver(SetBlockDisplayBlockstate.ID, (payload, context) -> {
+
+
+                UUID uuid = UUID.fromString(payload.uuid());
+                Entity entity = context.player().getWorld().getEntity(uuid);
+
+                if (entity == null) {
+                    return;
+                }
+
+
+
+
+                if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplay) {
+
+                    if (Util.getLockedDisplayEntity(blockDisplay)) {
+                        return;
+                    }
+                    if (!Util.getUuidFromDisplayEntity(blockDisplay).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplay).isEmpty()) {
+                        if (!context.player().hasPermissionLevel(2)) {
+                            return;
+                        }
+                    }
+
+                    BlockState state = blockDisplay.getBlockState();
+
+                    for (Property<?> property : state.getProperties()) {
+                        if (property.getName().equals(payload.propertyName())) {
+                            BlockState newState = withParsedValue(state, property, payload.value());
+
+                            blockDisplay.setBlockState(newState);
+                            break;
+                        }
+                    }
+                }
+
+        });
+
+
+        ServerPlayNetworking.registerGlobalReceiver(ChangeBlockDisplayState.ID, (payload, context) -> {
+
+
+            String string = payload.string();
+            String whatchange = payload.blocktochange();
+
+            Entity entity = context.player().getWorld().getEntity(UUID.fromString(string));
+
+            
+
+            if (entity != null) {
+                if (entity instanceof DisplayEntity.BlockDisplayEntity displayEntity) {
+
+                    if (Util.getLockedDisplayEntity(displayEntity)) {
+                        return;
+                    }
+                    if (!Util.getUuidFromDisplayEntity(displayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(displayEntity).isEmpty()) {
+                        if (!context.player().hasPermissionLevel(2)) {
+                            return;
+                        }
+                    }
+
+
+                    Block block = displayEntity.getBlockState().getBlock();
+
+                    Identifier id = Registries.BLOCK.getId(block);
+
+                    if (Util.getOriginalBlockDisplayEntity(displayEntity).equalsIgnoreCase("")) {
+                        Util.setOriginalBlockDisplayEntity(displayEntity, id.toString());
+                    }
+                    boolean isDirt = displayEntity.getBlockState().isOf(Blocks.DIRT);
+                    boolean isGrass = displayEntity.getBlockState().isOf(Blocks.GRASS_BLOCK);
+                    boolean isFarmland = displayEntity.getBlockState().isOf(Blocks.FARMLAND);
+
+                    boolean isBambooShoot = displayEntity.getBlockState().isOf(Blocks.BAMBOO_SAPLING);
+                    boolean isBamboo = displayEntity.getBlockState().isOf(Blocks.BAMBOO);
+                    boolean isPiston = displayEntity.getBlockState().isOf(Blocks.PISTON);
+                    boolean isStickyPiston = displayEntity.getBlockState().isOf(Blocks.STICKY_PISTON);
+                    boolean isPistonHead = displayEntity.getBlockState().isOf(Blocks.PISTON_HEAD);
+
+
+
+                    if (isStickyPiston) {
+                        if (whatchange.equalsIgnoreCase("nonsticky")) {
+                            displayEntity.setBlockState(Blocks.PISTON.getDefaultState());
+                            context.player().giveItemStack(new ItemStack(Items.SLIME_BALL));
+                        }
+                    }
+
+                    if (isPiston) {
+                        if (whatchange.equalsIgnoreCase("pistonhead")) {
+                            displayEntity.setBlockState(Blocks.PISTON_HEAD.getDefaultState());
+                        }
+                        if (whatchange.equalsIgnoreCase("makesticky")) {
+                            if (context.player().getInventory().contains(new ItemStack(Items.SLIME_BALL))) {
+
+                                for (ItemStack stack : context.player().getInventory()) {
+                                    if (stack.isOf(Items.SLIME_BALL)) {
+                                        stack.decrement(1);
+                                        break;
+                                    }
+
+                                }
+
+
+                                displayEntity.setBlockState(Blocks.STICKY_PISTON.getDefaultState());
+                            } else {
+                                context.player().sendMessage(Text.literal("You currently dont have a slime ball in your inventory!"), true);
+                            }
+
+                        }
+                    }
+
+
+                    if (isPistonHead) {
+                        if (whatchange.equalsIgnoreCase("piston")) {
+                            displayEntity.setBlockState(Blocks.PISTON.getDefaultState());
+                        }
+                    }
+
+                    if (isDirt) {
+                        if (whatchange.equalsIgnoreCase("grass")) {
+                            displayEntity.setBlockState(Blocks.GRASS_BLOCK.getDefaultState());
+                        }
+                        if (whatchange.equalsIgnoreCase("farmland")) {
+                            displayEntity.setBlockState(Blocks.FARMLAND.getDefaultState());
+                        }
+                    }
+
+                    if (isGrass) {
+                        if (whatchange.equalsIgnoreCase("dirt")) {
+                            displayEntity.setBlockState(Blocks.DIRT.getDefaultState());
+                        }
+                        if (whatchange.equalsIgnoreCase("farmland")) {
+                            displayEntity.setBlockState(Blocks.FARMLAND.getDefaultState());
+                        }
+                    }
+
+                    if (isFarmland) {
+                        if (whatchange.equalsIgnoreCase("dirt")) {
+                            displayEntity.setBlockState(Blocks.DIRT.getDefaultState());
+                        }
+                        if (whatchange.equalsIgnoreCase("grass")) {
+                            displayEntity.setBlockState(Blocks.GRASS_BLOCK.getDefaultState());
+                        }
+                    }
+                    if (isBambooShoot) {
+                        if (whatchange.equalsIgnoreCase("bamboo")) {
+                            displayEntity.setBlockState(Blocks.BAMBOO.getDefaultState());
+                        }
+                    }
+
+                    if (isBamboo) {
+                        if (whatchange.equalsIgnoreCase("bambooshoot")) {
+                            displayEntity.setBlockState(Blocks.BAMBOO_SAPLING.getDefaultState());
+                        }
+                    }
+                }
+            }
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(SetItemDisplayContextPacket.ID, (payload, context) -> {
+                    String uuidString = payload.uuid();
+                    String contextName = payload.context();
+
+
+                        Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuidString));
+
+                        if (entity == null) return;
+                        if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplay) {
+
+
+                            if (Util.getLockedDisplayEntity(itemDisplay)) {
+                                return;
+                            }
+                            if (!Util.getUuidFromDisplayEntity(itemDisplay).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(itemDisplay).isEmpty()) {
+                                if (!context.player().hasPermissionLevel(2)) {
+                                    return;
+                                }
+                            }
+
+                            ItemDisplayContext itemDisplayContext = Arrays.stream(ItemDisplayContext.values())
+                                    .filter(c -> c.asString().equals(contextName))
+                                    .findFirst()
+                                    .orElse(ItemDisplayContext.NONE);
+
+                            itemDisplay.setItemDisplayContext(itemDisplayContext);
+                        }
+
+                }
+        );
+
+
+
+    }
+
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static BlockState withParsedValue(BlockState state, Property property, String value) {
+        Optional<?> parsed = property.parse(value);
+        if (parsed.isPresent()) {
+            return state.with(property, (Comparable) parsed.get());
+        } else {
+        }
+        return state;
     }
 
 }

@@ -67,7 +67,6 @@ public class PivotClient implements ClientModInitializer {
 			if (i != -1) {
 				currentIndex = i;
 			}
-			System.out.println(i);
 
 			}, 2);
 
@@ -101,7 +100,10 @@ public class PivotClient implements ClientModInitializer {
 
 
 
+
 						if (attachedOrCreate.uuid().equals(minecraftClient.player.getUuidAsString()) || attachedOrCreate.uuid().equals("")) {
+							DisplayEntitiesInWorld.add(blockDisplayEntity.getUuid());
+						} else if (MinecraftClient.getInstance().player.hasPermissionLevel(2)) {
 							DisplayEntitiesInWorld.add(blockDisplayEntity.getUuid());
 						}
 					}

@@ -1,8 +1,11 @@
 package bikerboys.pivot.screen;
 
+import bikerboys.pivot.Pivot;
 import bikerboys.pivot.PivotClient;
+import bikerboys.pivot.Scheduler;
 import bikerboys.pivot.networking.packets.*;
 import bikerboys.pivot.util.Util;
+import com.google.common.collect.ImmutableList;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.*;
 import io.wispforest.owo.ui.container.Containers;
@@ -11,8 +14,13 @@ import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.item.ItemDisplayContext;
+import net.minecraft.network.packet.s2c.common.CustomPayloadS2CPacket;
 import net.minecraft.state.property.Property;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.AffineTransformation;
@@ -21,11 +29,15 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.UUID;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
 import static bikerboys.pivot.util.Util.eulerDegreesToQuaternion;
 import static bikerboys.pivot.util.Util.quaternionToEulerDegrees;
 
 public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
-
+    private ItemDisplayContext currentContext = ItemDisplayContext.NONE;
     private int tick = 0;
     private boolean suppressUpdates = false;
     private DisplayEntity displayEntity;
@@ -63,6 +75,9 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
     // Navigation
     private final ButtonComponent nextEntity = Components.button(Text.literal("Next"), btn -> switchEntity(1));
     private final ButtonComponent previousEntity = Components.button(Text.literal("Previous"), btn -> switchEntity(-1));
+    private final ButtonComponent closestEntity = Components.button(Text.literal("Closest"), btn -> selectClosest());
+
+
 
     // Buttons
     private final ButtonComponent advancedModeButton = Components.button(Text.literal("Advanced Mode"), btn -> PivotClient.advancedmode = !PivotClient.advancedmode);
@@ -89,14 +104,15 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         FlowLayout buttons = Containers.verticalFlow(Sizing.content(), Sizing.content());
         buttons.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
         buttons.positioning(Positioning.absolute(this.width - 125, 10));
-        buttons.child(nextEntity.horizontalSizing(Sizing.fixed(70)));
-        buttons.child(previousEntity.horizontalSizing(Sizing.fixed(70)));
+        buttons.child(nextEntity.horizontalSizing(Sizing.fixed(110)));
+        buttons.child(previousEntity.horizontalSizing(Sizing.fixed(110)));
+        buttons.child(closestEntity.horizontalSizing(Sizing.fixed(110)));
 
         // --- Rotation Sliders ---
         FlowLayout rotationSliders = Containers.verticalFlow(Sizing.content(), Sizing.content());
         rotationSliders.alignment(HorizontalAlignment.LEFT, VerticalAlignment.TOP);
 
-        java.util.function.Function<DiscreteSliderComponent, FlowLayout> rotationRow = (slider) -> {
+        Function<DiscreteSliderComponent, FlowLayout> rotationRow = (slider) -> {
             FlowLayout row = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(24));
             row.alignment(HorizontalAlignment.LEFT, VerticalAlignment.CENTER);
             row.child(slider.horizontalSizing(Sizing.fixed(140)));
@@ -132,7 +148,7 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         );
 
         // --- Scale sliders ---
-        java.util.function.BiFunction<String, DiscreteSliderComponent, FlowLayout> scaleRow = (label, slider) -> {
+        BiFunction<String, DiscreteSliderComponent, FlowLayout> scaleRow = (label, slider) -> {
             FlowLayout row = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(24));
             row.alignment(HorizontalAlignment.LEFT, VerticalAlignment.CENTER);
             row.child(Components.label(Text.literal(label)).horizontalSizing(Sizing.fixed(70)));
@@ -148,7 +164,7 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         rotationSliders.child(scaleRow.apply("Scale Z", scaleZSlider));
 
         // --- Translation sliders ---
-        java.util.function.BiFunction<String, DiscreteSliderComponent, FlowLayout> transRow = (label, slider) -> {
+        BiFunction<String, DiscreteSliderComponent, FlowLayout> transRow = (label, slider) -> {
             FlowLayout row = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(24));
             row.alignment(HorizontalAlignment.LEFT, VerticalAlignment.CENTER);
             row.child(Components.label(Text.literal(label)).horizontalSizing(Sizing.fixed(70)));
@@ -173,7 +189,7 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         FlowLayout advWrap = Containers.horizontalFlow(Sizing.content(), Sizing.content());
         advWrap.positioning(Positioning.absolute(10, 10));
         advWrap.gap(5);
-        advWrap.child(advancedModeButton);
+       // advWrap.child(advancedModeButton);
         advWrap.child(toggleGlowButton);
 
 
@@ -348,8 +364,8 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
 
         blockStateScroll = Containers.verticalScroll(
-                        Sizing.fixed(200), // width of scroll area
-                        Sizing.fixed(100), // height of scroll area
+                        Sizing.fixed(220), // width of scroll area
+                        Sizing.fixed(130), // height of scroll area
                         blockStateFlow
                 );
 
@@ -365,7 +381,7 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
 
 // Position in your UI
-        blockStateScroll.positioning(Positioning.absolute(this.width - 225 - 10, 350));
+        blockStateScroll.positioning(Positioning.absolute(this.width - 225, 340));
 
 // Add to root
         root.child(blockStateScroll);
@@ -408,8 +424,30 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
     }
 
-    private void handleBlockStateClick(Property<?> state) {
+    private <T extends Comparable<T>> void handleBlockStateClick(Property<T> property, BlockState state) {
+        if (displayEntity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+            T current = state.get(property);
+            T next = getNextValue(property, current);
 
+
+            ClientPlayNetworking.send(
+                    new SetBlockDisplayBlockstate(
+                            blockDisplayEntity.getUuidAsString(),
+                            property.getName(),
+                            property.name(next) // ✅ correct serialization
+                    )
+            );
+
+            tick = 0;
+
+        }
+    }
+
+    // cycles through property values
+    private static <T extends Comparable<T>> T getNextValue(Property<T> property, T current) {
+        ImmutableList<T> values = ImmutableList.copyOf(property.getValues());
+        int idx = values.indexOf(current);
+        return values.get((idx + 1) % values.size());
     }
 
 
@@ -578,7 +616,36 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
 
     }
+    private void selectClosest() {
+        String closestUuid = null;
+        double closestDistance = Double.MAX_VALUE; // Start with a very large number
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
 
+        if (player == null || MinecraftClient.getInstance().world == null) return;
+
+        for (UUID uuid : PivotClient.DisplayEntitiesInWorld) {
+            DisplayEntity displayEntity = (DisplayEntity) MinecraftClient.getInstance().world.getEntity(uuid);
+            if (displayEntity != null) {
+                double distance = displayEntity.distanceTo(player);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestUuid = displayEntity.getUuidAsString();
+                }
+            }
+        }
+
+        String finalUuid = closestUuid;
+
+        Scheduler.runLater(() -> {
+            if (finalUuid != null) {
+                UUID selectedBlockDisplayEntity = UUID.fromString(finalUuid);
+                int i = PivotClient.DisplayEntitiesInWorld.indexOf(selectedBlockDisplayEntity);
+                if (i != -1) {
+                    PivotClient.currentIndex = i;
+                }
+            }
+        }, 2);
+    }
 
 
     private void sendRotationUpdate(Quaternionf q) {
@@ -638,32 +705,98 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
             displayEntity = null;
         }
 
+        if (displayEntity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
+
+
+            blockStateFlow.clearChildren();
+
+
+
+
+            BlockState state = blockDisplayEntity.getBlockState();
+
+
+            if (state.isOf(Blocks.PISTON)) {
+                blockStateFlow.child(Components.button(Text.literal("Set Piston Head"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "pistonhead"))).horizontalSizing(Sizing.fixed(188)));
+                blockStateFlow.child(Components.button(Text.literal("Make Sticky"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "makesticky"))).horizontalSizing(Sizing.fixed(188)));
+            }
+
+            if (state.isOf(Blocks.PISTON_HEAD)) {
+                blockStateFlow.child(Components.button(Text.literal("Set Piston"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "piston"))).horizontalSizing(Sizing.fixed(188)));
+            }
+
+            if (state.isOf(Blocks.STICKY_PISTON)) {
+                blockStateFlow.child(Components.button(Text.literal("Set Non Sticky"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "nonsticky"))).horizontalSizing(Sizing.fixed(188)));
+            }
+
+
+
+            if (state.isOf(Blocks.DIRT)) {
+                blockStateFlow.child(Components.button(Text.literal("Set Farmland"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "farmland"))).horizontalSizing(Sizing.fixed(188)));
+                blockStateFlow.child(Components.button(Text.literal("Set Grass"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "grass"))).horizontalSizing(Sizing.fixed(188)));
+            }
+            if (state.isOf(Blocks.FARMLAND)) {
+                blockStateFlow.child(Components.button(Text.literal("Set Dirt"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "dirt"))).horizontalSizing(Sizing.fixed(188)));
+                blockStateFlow.child(Components.button(Text.literal("Set Grass"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "grass"))).horizontalSizing(Sizing.fixed(188)));
+
+            }
+            if (state.isOf(Blocks.GRASS_BLOCK)) {
+
+                blockStateFlow.child(Components.button(Text.literal("Set Farmland"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "farmland"))).horizontalSizing(Sizing.fixed(188)));
+                blockStateFlow.child(Components.button(Text.literal("Set Dirt"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "dirt"))).horizontalSizing(Sizing.fixed(188)));
+            }
+            if (state.isOf(Blocks.BAMBOO)) {
+                blockStateFlow.child(Components.button(Text.literal("Set Bamboo Shoot"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "bambooshoot"))).horizontalSizing(Sizing.fixed(188)));
+            }
+            if (state.isOf(Blocks.BAMBOO_SAPLING)) {
+                blockStateFlow.child(Components.button(Text.literal("Set Bamboo"), btn -> ClientPlayNetworking.send(new ChangeBlockDisplayState(displayEntity.getUuidAsString(), "bambooshoot"))).horizontalSizing(Sizing.fixed(188)));
+
+            }
+            for (Property<?> property : state.getProperties()) {
+                blockStateFlow.child(Components.button(
+                        Text.literal(property.getName() + " = " + state.get(property)),
+                        btn -> handleBlockStateClick(property, blockDisplayEntity.getBlockState()) // always fresh state
+                ).horizontalSizing(Sizing.fixed(188)));
+            }
+
+        }
+
+
+        if (displayEntity instanceof DisplayEntity.ItemDisplayEntity itemDisplayEntity) {
+
+            blockStateFlow.clearChildren();
+
+
+            blockStateFlow.child(Components.button(
+                    Text.literal("Display = " + getName(currentContext)),
+                    btn -> {
+                        // cycle to next
+                        currentContext = getNextDisplayContext(currentContext);
+
+                        // update button label
+
+
+
+                        // send to server (similar to your blockstate handling)
+                        ClientPlayNetworking.send(
+                                new SetItemDisplayContextPacket(
+                                        displayEntity.getUuidAsString(),
+                                        currentContext.asString()
+                                )
+                        );
+
+                        tick = 0;
+                    }
+            ).horizontalSizing(Sizing.fixed(188)));
+
+
+        }
+
         // On first tick after switching entity, load values into sliders
         if (tick == 0 && displayEntity != null) {
 
-            if (displayEntity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
 
 
-                blockStateFlow.clearChildren();
-
-
-
-                BlockState state = blockDisplayEntity.getBlockState().getBlock().getDefaultState();
-
-
-
-
-                System.out.println(state.getProperties());
-
-                state.getProperties().forEach((property1 -> {
-
-
-                    blockStateFlow.child(Components.button(Text.literal(property1.getName()), btn -> {
-                        handleBlockStateClick(property1);
-                    }).horizontalSizing(Sizing.fixed(120)));
-                }));
-
-            }
 
 
 
@@ -698,6 +831,28 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
         tick++;
 
 
+    }
+
+    private String getName(ItemDisplayContext context) {
+        switch (context.asString().toLowerCase()) {
+            case "thirdperson_lefthand":
+                return "3rd person lefthand";
+            case "thirdperson_righthand":
+                return "3rd person righthand";
+            case "firstperson_lefthand":
+                return "1st person lefthand";
+            case "firstperson_righthand":
+                return "1st person righthand";
+            default:
+                return context.asString(); // fallback
+        }
+    }
+
+
+    private ItemDisplayContext getNextDisplayContext(ItemDisplayContext current) {
+        ItemDisplayContext[] values = ItemDisplayContext.values();
+        int nextIndex = (current.ordinal() + 1) % values.length;
+        return values[nextIndex];
     }
 
     @Override

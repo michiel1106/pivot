@@ -2,6 +2,7 @@ package bikerboys.pivot.util;
 
 import bikerboys.pivot.Pivot;
 import bikerboys.pivot.attachmenttype.LockedCustomAttachedData;
+import bikerboys.pivot.attachmenttype.OriginalBlockAttachedData;
 import bikerboys.pivot.attachmenttype.UUIDCustomAttachedData;
 
 import com.mojang.serialization.DynamicOps;
@@ -107,6 +108,18 @@ public class Util {
         displayEntity.setAttached(Pivot.LOCKED_ATTACHMENT, attachedOrCreate.setLocked(false));
     }
 
+
+    public static void setOriginalBlockDisplayEntity(DisplayEntity displayEntity, String id) {
+        OriginalBlockAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.ORIGINAL_BLOCK_ATTACHMENT);
+
+        displayEntity.setAttached(Pivot.ORIGINAL_BLOCK_ATTACHMENT, attachedOrCreate.setUuid(id));
+    }
+
+
+
+    public static String getOriginalBlockDisplayEntity(DisplayEntity displayEntity) {
+        return displayEntity.getAttachedOrCreate(Pivot.ORIGINAL_BLOCK_ATTACHMENT).blockid();
+    }
 
 
 

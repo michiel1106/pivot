@@ -1,6 +1,7 @@
 package bikerboys.pivot;
 
 import bikerboys.pivot.attachmenttype.LockedCustomAttachedData;
+import bikerboys.pivot.attachmenttype.OriginalBlockAttachedData;
 import bikerboys.pivot.attachmenttype.UUIDCustomAttachedData;
 import bikerboys.pivot.networking.Listener;
 import bikerboys.pivot.networking.packets.*;
@@ -34,6 +35,13 @@ public class Pivot implements ModInitializer {
 					.persistent(LockedCustomAttachedData.CODEC)
 					.syncWith(LockedCustomAttachedData.PACKET_CODEC, AttachmentSyncPredicate.all()));
 
+	public static final AttachmentType<OriginalBlockAttachedData> ORIGINAL_BLOCK_ATTACHMENT = AttachmentRegistry.create(
+			Identifier.of(MOD_ID,"originalblock"),
+			builder->builder // we are using a builder chain here to configure the attachment data type
+					.initializer(()->OriginalBlockAttachedData.DEFAULT) // a default value to provide if you dont supply one
+					.persistent(OriginalBlockAttachedData.CODEC)
+					.syncWith(OriginalBlockAttachedData.PACKET_CODEC, AttachmentSyncPredicate.all()));
+
 	@Override
 	public void onInitialize() {
 
@@ -47,6 +55,9 @@ public class Pivot implements ModInitializer {
 		PayloadTypeRegistry.playC2S().register(UpdateBlockDisplayPos.ID, UpdateBlockDisplayPos.CODEC);
 		PayloadTypeRegistry.playC2S().register(DuplicateBlockDisplay.ID, DuplicateBlockDisplay.CODEC);
 		PayloadTypeRegistry.playC2S().register(LockDisplayEntity.ID, LockDisplayEntity.CODEC);
+		PayloadTypeRegistry.playC2S().register(SetBlockDisplayBlockstate.ID, SetBlockDisplayBlockstate.CODEC);
+		PayloadTypeRegistry.playC2S().register(ChangeBlockDisplayState.ID, ChangeBlockDisplayState.CODEC);
+		PayloadTypeRegistry.playC2S().register(SetItemDisplayContextPacket.ID, SetItemDisplayContextPacket.CODEC);
 
 
 		Listener.registerListeners();
