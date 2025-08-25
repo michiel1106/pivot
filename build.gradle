@@ -38,7 +38,7 @@ dependencies {
 
 	modImplementation "io.wispforest:owo-lib:${project.owo_version}"
 	// only if you plan to use owo-config
-	annotationProcessor "io.wispforest:owo-lib:${project.owo_version}"
+
 
 	// include this if you don't want force your users to install owo
 	// sentinel will warn them and give the option to download it automatically
