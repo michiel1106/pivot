@@ -23,6 +23,7 @@ import java.util.UUID;
 public class PivotClient implements ClientModInitializer {
 	private static KeyBinding keyBinding;
 	public static List<UUID> DisplayEntitiesInWorld = new ArrayList<>();
+	public static BlockDisplayEntityEditScreen currentscreen = null;
 
 
 
@@ -52,8 +53,14 @@ public class PivotClient implements ClientModInitializer {
 
 		ClientPlayNetworking.registerGlobalReceiver(SetSelectedBlockDisplayEntityS2C.ID, ((payload, context) -> {
 
+
+
+
 			Scheduler.runLater(() -> {
 
+				if (currentscreen != null) {
+					currentscreen.setTick();
+				}
 
 
 			String uuid = payload.uuid();
@@ -66,6 +73,7 @@ public class PivotClient implements ClientModInitializer {
 
 			if (i != -1) {
 				currentIndex = i;
+
 			}
 
 			}, 2);
@@ -84,7 +92,11 @@ public class PivotClient implements ClientModInitializer {
 
 	private static void Tick(MinecraftClient minecraftClient) {
 		if (keyBinding.wasPressed()) {
-			minecraftClient.setScreen(new BlockDisplayEntityEditScreen());
+
+			BlockDisplayEntityEditScreen blockDisplayEntityEditScreen = new BlockDisplayEntityEditScreen();
+			currentscreen = blockDisplayEntityEditScreen;
+
+			minecraftClient.setScreen(blockDisplayEntityEditScreen);
 		}
 
 		if (minecraftClient.player != null) {

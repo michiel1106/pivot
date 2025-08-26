@@ -525,6 +525,9 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
         AlignXYZ alignXYZ = new AlignXYZ(displayEntity.getUuidAsString(), coord);
 
+
+        Scheduler.runLater(() -> {tick = 0;}, 2);
+
         ClientPlayNetworking.send(alignXYZ);
 
     }
@@ -616,6 +619,12 @@ public class BlockDisplayEntityEditScreen extends BaseOwoScreen<FlowLayout> {
 
 
     }
+
+    public void setTick() {
+        tick = 0;
+    }
+
+
     private void selectClosest() {
         String closestUuid = null;
         double closestDistance = Double.MAX_VALUE; // Start with a very large number
