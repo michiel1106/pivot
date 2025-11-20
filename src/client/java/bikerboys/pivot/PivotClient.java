@@ -29,7 +29,7 @@ public class PivotClient implements ClientModInitializer {
 
 
 	public static int currentIndex = 0;
-	public static boolean glowing = true;
+	public static boolean glowing = false;
 	public static boolean advancedmode = false;
 
 
