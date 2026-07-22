@@ -8,15 +8,14 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Quaterniond;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
+import org.joml.Quaternionfc;
+import org.joml.Vector3fc;
 
 import java.util.Optional;
 
 import static bikerboys.pivot.Pivot.MOD_ID;
 
-public record UpdateBlockDisplayPacketC2S(String uuid, @Nullable Vector3f translation, @Nullable Quaternionf right_rotation, @Nullable Vector3f scale) implements CustomPayload {
+public record UpdateBlockDisplayPacketC2S(String uuid, @Nullable Vector3fc translation, @Nullable Quaternionfc right_rotation, @Nullable Vector3fc scale) implements CustomPayload {
     public static final Identifier UPDATE_BLOCK_DISPLAY_ID = Identifier.of(MOD_ID, "update_block_display");
     public static final CustomPayload.Id<UpdateBlockDisplayPacketC2S> ID = new CustomPayload.Id<>(UpdateBlockDisplayPacketC2S.UPDATE_BLOCK_DISPLAY_ID);
     public static final PacketCodec<RegistryByteBuf, UpdateBlockDisplayPacketC2S> CODEC = PacketCodec.tuple(

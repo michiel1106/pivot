@@ -24,6 +24,7 @@ public class PivotClient implements ClientModInitializer {
 	private static KeyBinding keyBinding;
 	public static List<UUID> DisplayEntitiesInWorld = new ArrayList<>();
 	public static BlockDisplayEntityEditScreen currentscreen = null;
+	public static boolean hasPivotPermission = false;
 
 
 
@@ -38,18 +39,44 @@ public class PivotClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(Scheduler::tick);
 
-		keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-				"key.pivot.openeditscreen", // The translation key of the keybinding's name
-				InputUtil.Type.KEYSYM, // The type of the keybinding, KEYSYM for keyboard, MOUSE for mouse.
-				GLFW.GLFW_KEY_R, // The keycode of the key
-				"category.pivot.pivot" // The translation key of the keybinding's category.
-		));
+		KeyBinding kb = null;
+		try {
+			java.lang.reflect.Constructor<KeyBinding> ctor1 = KeyBinding.class.getConstructor(String.class, InputUtil.Type.class, int.class, String.class);
+			kb = ctor1.newInstance("key.pivot.openeditscreen", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, "category.pivot.pivot");
+		} catch (Exception e) {
+			try {
+				Class<?> categoryClass = null;
+				try {
+					categoryClass = Class.forName("net.minecraft.client.option.KeyBinding$Category");
+				} catch (ClassNotFoundException e1) {
+					categoryClass = Class.forName("net.minecraft.class_304$class_11900");
+				}
 
+				java.lang.reflect.Method createMethod = null;
+				try {
+					createMethod = categoryClass.getMethod("create", net.minecraft.util.Identifier.class);
+				} catch (NoSuchMethodException e2) {
+					createMethod = categoryClass.getMethod("method_74698", net.minecraft.util.Identifier.class);
+				}
 
-
+				Object categoryObj = createMethod.invoke(null, net.minecraft.util.Identifier.of("pivot", "pivot"));
+				java.lang.reflect.Constructor<KeyBinding> ctor2 = KeyBinding.class.getConstructor(String.class, InputUtil.Type.class, int.class, categoryClass);
+				kb = ctor2.newInstance("key.pivot.openeditscreen", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, categoryObj);
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to construct KeyBinding via reflection", ex);
+			}
+		}
+		keyBinding = KeyBindingHelper.registerKeyBinding(kb);
 
 		ClientTickEvents.END_CLIENT_TICK.register(PivotClient::Tick);
 
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			hasPivotPermission = false;
+		});
+
+		ClientPlayNetworking.registerGlobalReceiver(bikerboys.pivot.networking.packets.PivotAuthPacketS2C.ID, (payload, context) -> {
+			hasPivotPermission = payload.authorized();
+		});
 
 		ClientPlayNetworking.registerGlobalReceiver(SetSelectedBlockDisplayEntityS2C.ID, ((payload, context) -> {
 
@@ -104,7 +131,7 @@ public class PivotClient implements ClientModInitializer {
 			// Clear list first (or just re-create a new one)
 			DisplayEntitiesInWorld.clear();
 
-			minecraftClient.player.clientWorld.getEntities().forEach((entity -> {
+			minecraftClient.world.getEntities().forEach((entity -> {
 				if (entity instanceof DisplayEntity blockDisplayEntity) {
 					if (minecraftClient.player.distanceTo(blockDisplayEntity) <= 150) {
 
@@ -115,7 +142,7 @@ public class PivotClient implements ClientModInitializer {
 
 						if (attachedOrCreate.uuid().equals(minecraftClient.player.getUuidAsString()) || attachedOrCreate.uuid().equals("")) {
 							DisplayEntitiesInWorld.add(blockDisplayEntity.getUuid());
-						} else if (MinecraftClient.getInstance().player.hasPermissionLevel(2)) {
+						} else if (hasPivotPermission || net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(MinecraftClient.getInstance().player.getPermissions())) {
 							DisplayEntitiesInWorld.add(blockDisplayEntity.getUuid());
 						}
 					}
@@ -137,7 +164,7 @@ public class PivotClient implements ClientModInitializer {
 		ClientPlayerEntity player = MinecraftClient.getInstance().player;
 
 		if (player != null) {
-			ClientWorld world = player.clientWorld;
+			ClientWorld world = MinecraftClient.getInstance().world;
 			if (world != null) {
 				Entity entity = world.getEntity(uuid);
 

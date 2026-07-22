@@ -19,7 +19,7 @@ public class ClientCommonNetworkHandler {
 
         if (instance != null) {
             if (instance.player != null) {
-                ClientWorld clientWorld = instance.player.clientWorld;
+                ClientWorld clientWorld = instance.world;
                 if (clientWorld != null) {
                     clientWorld.getEntities().forEach((entity -> {
                         if (entity instanceof DisplayEntity displayEntity) {

@@ -1,0 +1,5 @@
+require-op: true
+permission: "pivot.admin"
+kick-unauthorized: false
+kick-message: "§cYou are not authorized to use Pivot on this server."
+debug: false
