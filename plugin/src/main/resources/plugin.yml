@@ -1,0 +1,12 @@
+name: PivotPaper
+version: '${version}'
+main: bikerboys.pivot.plugin.PivotPaperPlugin
+api-version: '1.21'
+commands:
+  pivot:
+    description: Pivot admin commands
+    permission: pivot.admin
+permissions:
+  pivot.admin:
+    description: Allows using pivot mod features
+    default: op

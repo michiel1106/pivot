@@ -23,8 +23,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.AffineTransformation;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
+import org.joml.Quaternionfc;
+import org.joml.Vector3fc;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -37,17 +37,17 @@ public class Listener {
 
             @Nullable String uuid = payload.uuid();
 
-            @Nullable Vector3f translation1 = payload.translation();
+            @Nullable Vector3fc translation1 = payload.translation();
 
-            @Nullable Quaternionf right_rotation = payload.right_rotation();
+            @Nullable Quaternionfc right_rotation = payload.right_rotation();
 
-            @Nullable Vector3f scale1 = payload.scale();
+            @Nullable Vector3fc scale1 = payload.scale();
 
             
             Entity entity = null;
 
             if (uuid != null) {
-                entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
+                entity = context.player().getEntityWorld().getEntity(UUID.fromString(uuid));
             }
 
 
@@ -60,18 +60,17 @@ public class Listener {
                         return;
                     }
                     if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                        if (!context.player().hasPermissionLevel(2)) {
+                        if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                             return;
                         }
                     }
 
-                    AffineTransformation transformation = DisplayEntity.getTransformation(blockDisplayEntity.getDataTracker());
+                    AffineTransformation transformation = blockDisplayEntity.getRenderState().transformation().interpolate(1.0f);
 
-                    // Example: reading parts of the transformation
-                    Vector3f translation = transformation.getTranslation();
-                    Quaternionf leftRot = transformation.getLeftRotation();
-                    Vector3f scale = transformation.getScale();
-                    Quaternionf rightRot = transformation.getRightRotation();
+                    Vector3fc translation = transformation.getTranslation();
+                    Quaternionfc leftRot = transformation.getLeftRotation();
+                    Vector3fc scale = transformation.getScale();
+                    Quaternionfc rightRot = transformation.getRightRotation();
 
 
                     if (right_rotation != null) {
@@ -103,7 +102,7 @@ public class Listener {
             String coord = alignXYZ.coord();
 
 
-            Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
+            Entity entity = context.player().getEntityWorld().getEntity(UUID.fromString(uuid));
 
 
             if (entity instanceof DisplayEntity blockDisplayEntity) {
@@ -111,12 +110,12 @@ public class Listener {
                     return;
                 }
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                    if (!context.player().hasPermissionLevel(2)) {
+                    if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                         return;
                     }
                 }
 
-                Vec3d pos = blockDisplayEntity.getPos();
+                Vec3d pos = blockDisplayEntity.getEntityPos();
                 double x = pos.getX();
                 double y = pos.getY();
                 double z = pos.getZ();
@@ -144,7 +143,7 @@ public class Listener {
 
             if (item instanceof BlockItem item1) {
                 Block block = item1.getBlock();
-                DisplayEntity.BlockDisplayEntity blockDisplayEntity = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, context.player().getWorld());
+                DisplayEntity.BlockDisplayEntity blockDisplayEntity = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, context.player().getEntityWorld());
 
                 blockDisplayEntity.setBlockState(block.getDefaultState());
                 blockDisplayEntity.setPos(player.getX(), player.getY(), player.getZ());
@@ -155,7 +154,7 @@ public class Listener {
                     player.getMainHandStack().decrement(1);
                 }
 
-                context.player().getWorld().spawnEntity(blockDisplayEntity);
+                context.player().getEntityWorld().spawnEntity(blockDisplayEntity);
                 Util.setUnlockedDisplayEntity(blockDisplayEntity);
                 Util.setUuidDisplayEntity(blockDisplayEntity, context.player());
 
@@ -165,7 +164,7 @@ public class Listener {
             }
 
             if (item == Items.FLINT_AND_STEEL) {
-                DisplayEntity.BlockDisplayEntity blockDisplayEntity = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, context.player().getWorld());
+                DisplayEntity.BlockDisplayEntity blockDisplayEntity = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, context.player().getEntityWorld());
 
                 if (player.getGameMode().isSurvivalLike()) {
                     player.getMainHandStack().damage(1, player);
@@ -174,7 +173,7 @@ public class Listener {
                 blockDisplayEntity.setBlockState(Blocks.FIRE.getDefaultState());
                 blockDisplayEntity.setPos(player.getX(), player.getY(), player.getZ());
 
-                context.player().getWorld().spawnEntity(blockDisplayEntity);
+                context.player().getEntityWorld().spawnEntity(blockDisplayEntity);
                 Util.setUnlockedDisplayEntity(blockDisplayEntity);
                 Util.setUuidDisplayEntity(blockDisplayEntity, context.player());
 
@@ -198,7 +197,7 @@ public class Listener {
 
 
 
-            DisplayEntity.ItemDisplayEntity itemDisplayEntity = new DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, context.player().getWorld());
+            DisplayEntity.ItemDisplayEntity itemDisplayEntity = new DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, context.player().getEntityWorld());
 
 
 
@@ -210,7 +209,7 @@ public class Listener {
                 player.getMainHandStack().decrement(1);
             }
 
-            context.player().getWorld().spawnEntity(itemDisplayEntity);
+            context.player().getEntityWorld().spawnEntity(itemDisplayEntity);
             Util.setUnlockedDisplayEntity(itemDisplayEntity);
             Util.setUuidDisplayEntity(itemDisplayEntity, context.player());
 
@@ -225,7 +224,7 @@ public class Listener {
         ServerPlayNetworking.registerGlobalReceiver(TakebackBlockEntity.ID, ((payload, context) -> {
             String uuid = payload.uuid();
 
-            Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
+            Entity entity = context.player().getEntityWorld().getEntity(UUID.fromString(uuid));
 
             if (entity == null) {return;}
             if (entity instanceof DisplayEntity.BlockDisplayEntity blockDisplayEntity) {
@@ -234,7 +233,7 @@ public class Listener {
                 }
 
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                    if (!context.player().hasPermissionLevel(2)) {
+                    if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                         return;
                     }
                 }
@@ -270,7 +269,7 @@ public class Listener {
                 }
 
                 if (!Util.getUuidFromDisplayEntity(itemDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(itemDisplayEntity).isEmpty()) {
-                    if (!context.player().hasPermissionLevel(2)) {
+                    if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                         return;
                     }
                 }
@@ -294,7 +293,7 @@ public class Listener {
 
         ServerPlayNetworking.registerGlobalReceiver(UpdateBlockDisplayPos.ID, (payload, context) -> {
             String uuid = payload.uuid();
-            Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
+            Entity entity = context.player().getEntityWorld().getEntity(UUID.fromString(uuid));
             if (entity == null) {return;}
             if (entity instanceof DisplayEntity blockDisplayEntity) {
 
@@ -302,7 +301,7 @@ public class Listener {
                     return;
                 }
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                    if (!context.player().hasPermissionLevel(2)) {
+                    if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                         return;
                     }
                 }
@@ -313,7 +312,7 @@ public class Listener {
 
         ServerPlayNetworking.registerGlobalReceiver(DuplicateBlockDisplay.ID, (payload, context) -> {
            String uuid = payload.uuid();
-            Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
+            Entity entity = context.player().getEntityWorld().getEntity(UUID.fromString(uuid));
             ServerPlayerEntity player = context.player();
             ItemStack mainHandStack = player.getMainHandStack();
 
@@ -325,7 +324,7 @@ public class Listener {
                     return;
                 }
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
-                    if (!context.player().hasPermissionLevel(2)) {
+                    if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                         return;
                     }
                 }
@@ -336,19 +335,19 @@ public class Listener {
 
 
                 if (item == mainHandStack.getItem() || blockDisplayEntity.getBlockState().isOf(Blocks.FIRE) || blockDisplayEntity.getBlockState().isOf(Blocks.SOUL_FIRE)) {
-                    DisplayEntity.BlockDisplayEntity duplicate = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, player.getWorld());
+                    DisplayEntity.BlockDisplayEntity duplicate = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, player.getEntityWorld());
 
-                    AffineTransformation transformation = DisplayEntity.getTransformation(blockDisplayEntity.getDataTracker());
+                    AffineTransformation transformation = blockDisplayEntity.getRenderState().transformation().interpolate(1.0f);
 
                     duplicate.setBlockState(blockDisplayEntity.getBlockState());
                     duplicate.setTransformation(transformation);
-                    duplicate.setPosition(blockDisplayEntity.getPos());
+                    duplicate.setPosition(blockDisplayEntity.getEntityPos());
 
                     if (player.getGameMode().isSurvivalLike()) {
                         mainHandStack.decrement(1);
                     }
 
-                    player.getWorld().spawnEntity(duplicate);
+                    player.getEntityWorld().spawnEntity(duplicate);
                     Util.setUnlockedDisplayEntity(duplicate);
                     Util.setUuidDisplayEntity(duplicate, context.player());
 
@@ -361,7 +360,7 @@ public class Listener {
                     return;
                 }
                 if (!Util.getUuidFromDisplayEntity(itemDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(itemDisplayEntity).isEmpty()) {
-                    if (!context.player().hasPermissionLevel(2)) {
+                    if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                         return;
                     }
                 }
@@ -369,20 +368,20 @@ public class Listener {
                 Item item = itemDisplayEntity.getItemStack().getItem();
 
                 if (item == mainHandStack.getItem()) {
-                    DisplayEntity.ItemDisplayEntity duplicate = new DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, player.getWorld());
+                    DisplayEntity.ItemDisplayEntity duplicate = new DisplayEntity.ItemDisplayEntity(EntityType.ITEM_DISPLAY, player.getEntityWorld());
 
-                    AffineTransformation transformation = DisplayEntity.getTransformation(itemDisplayEntity.getDataTracker());
+                    AffineTransformation transformation = itemDisplayEntity.getRenderState().transformation().interpolate(1.0f);
 
                     duplicate.setItemStack(new ItemStack(itemDisplayEntity.getItemStack().getItem()));
                     duplicate.setTransformation(transformation);
                     duplicate.setItemDisplayContext(itemDisplayEntity.getItemDisplayContext());
-                    duplicate.setPosition(itemDisplayEntity.getPos());
+                    duplicate.setPosition(itemDisplayEntity.getEntityPos());
 
                     if (player.getGameMode().isSurvivalLike()) {
                         mainHandStack.decrement(1);
                     }
 
-                    player.getWorld().spawnEntity(duplicate);
+                    player.getEntityWorld().spawnEntity(duplicate);
 
                     Util.setUnlockedDisplayEntity(duplicate);
                     Util.setUuidDisplayEntity(duplicate, context.player());
@@ -399,7 +398,7 @@ public class Listener {
 
         ServerPlayNetworking.registerGlobalReceiver(LockDisplayEntity.ID, (payload, context) -> {
             String uuid = payload.uuid();
-            Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuid));
+            Entity entity = context.player().getEntityWorld().getEntity(UUID.fromString(uuid));
 
 
             if (entity == null) {return;}
@@ -408,7 +407,7 @@ public class Listener {
                 if (!Util.getUuidFromDisplayEntity(blockDisplayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplayEntity).isEmpty()) {
 
 
-                    if (!context.player().hasPermissionLevel(2)) {
+                    if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                         return;
                     }
 
@@ -433,7 +432,7 @@ public class Listener {
 
 
                 UUID uuid = UUID.fromString(payload.uuid());
-                Entity entity = context.player().getWorld().getEntity(uuid);
+                Entity entity = context.player().getEntityWorld().getEntity(uuid);
 
                 if (entity == null) {
                     return;
@@ -448,7 +447,7 @@ public class Listener {
                         return;
                     }
                     if (!Util.getUuidFromDisplayEntity(blockDisplay).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(blockDisplay).isEmpty()) {
-                        if (!context.player().hasPermissionLevel(2)) {
+                        if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                             return;
                         }
                     }
@@ -474,7 +473,7 @@ public class Listener {
             String string = payload.string();
             String whatchange = payload.blocktochange();
 
-            Entity entity = context.player().getWorld().getEntity(UUID.fromString(string));
+            Entity entity = context.player().getEntityWorld().getEntity(UUID.fromString(string));
 
             
 
@@ -485,7 +484,7 @@ public class Listener {
                         return;
                     }
                     if (!Util.getUuidFromDisplayEntity(displayEntity).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(displayEntity).isEmpty()) {
-                        if (!context.player().hasPermissionLevel(2)) {
+                        if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                             return;
                         }
                     }
@@ -594,7 +593,7 @@ public class Listener {
                     String contextName = payload.context();
 
 
-                        Entity entity = context.player().getWorld().getEntity(UUID.fromString(uuidString));
+                        Entity entity = context.player().getEntityWorld().getEntity(UUID.fromString(uuidString));
 
                         if (entity == null) return;
                         if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplay) {
@@ -604,7 +603,7 @@ public class Listener {
                                 return;
                             }
                             if (!Util.getUuidFromDisplayEntity(itemDisplay).equals(context.player().getUuidAsString()) && !Util.getUuidFromDisplayEntity(itemDisplay).isEmpty()) {
-                                if (!context.player().hasPermissionLevel(2)) {
+                                if (!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(context.player().getPermissions())) {
                                     return;
                                 }
                             }
@@ -630,7 +629,6 @@ public class Listener {
         Optional<?> parsed = property.parse(value);
         if (parsed.isPresent()) {
             return state.with(property, (Comparable) parsed.get());
-        } else {
         }
         return state;
     }

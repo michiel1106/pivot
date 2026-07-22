@@ -48,6 +48,7 @@ public class Pivot implements ModInitializer {
 
 		PayloadTypeRegistry.playC2S().register(UpdateBlockDisplayPacketC2S.ID, UpdateBlockDisplayPacketC2S.CODEC);
 		PayloadTypeRegistry.playS2C().register(SetSelectedBlockDisplayEntityS2C.ID, SetSelectedBlockDisplayEntityS2C.CODEC);
+		PayloadTypeRegistry.playS2C().register(PivotAuthPacketS2C.ID, PivotAuthPacketS2C.CODEC);
 		PayloadTypeRegistry.playC2S().register(AlignXYZ.ID, AlignXYZ.CODEC);
 		PayloadTypeRegistry.playC2S().register(NewBlockDisplayEntity.ID, NewBlockDisplayEntity.CODEC);
 		PayloadTypeRegistry.playC2S().register(NewItemDisplayEntity.ID, NewItemDisplayEntity.CODEC);
