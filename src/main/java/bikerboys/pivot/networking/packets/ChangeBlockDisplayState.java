@@ -1,21 +1,21 @@
 package bikerboys.pivot.networking.packets;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
-
 import static bikerboys.pivot.Pivot.MOD_ID;
 
-public record ChangeBlockDisplayState(String string, String blocktochange) implements CustomPayload {
-    public static final Identifier UPDATE_BLOCK_DISPLAY_ID = Identifier.of(MOD_ID, "change_block_display_state");
-    public static final Id<ChangeBlockDisplayState> ID = new Id<>(ChangeBlockDisplayState.UPDATE_BLOCK_DISPLAY_ID);
-    public static final PacketCodec<RegistryByteBuf, ChangeBlockDisplayState> CODEC = PacketCodec.tuple(PacketCodecs.STRING, ChangeBlockDisplayState::string, PacketCodecs.STRING, ChangeBlockDisplayState::blocktochange, ChangeBlockDisplayState::new);
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+
+public record ChangeBlockDisplayState(String string, String blocktochange) implements CustomPacketPayload {
+    public static final Identifier UPDATE_BLOCK_DISPLAY_ID = Identifier.fromNamespaceAndPath(MOD_ID, "change_block_display_state");
+    public static final Type<ChangeBlockDisplayState> ID = new Type<>(ChangeBlockDisplayState.UPDATE_BLOCK_DISPLAY_ID);
+    public static final StreamCodec<RegistryFriendlyByteBuf, ChangeBlockDisplayState> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, ChangeBlockDisplayState::string, ByteBufCodecs.STRING_UTF8, ChangeBlockDisplayState::blocktochange, ChangeBlockDisplayState::new);
 
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

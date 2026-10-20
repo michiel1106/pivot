@@ -1,6 +1,6 @@
 package bikerboys.pivot;
 
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
 
 import java.util.Iterator;
@@ -10,7 +10,7 @@ import java.util.List;
 public class Scheduler {
     private static final List<ScheduledTask> tasks = new LinkedList<>();
 
-    public static void tick(MinecraftClient server) {
+    public static void tick(Minecraft server) {
         Iterator<ScheduledTask> iterator = tasks.iterator();
         while (iterator.hasNext()) {
             ScheduledTask task = iterator.next();

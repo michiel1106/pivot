@@ -12,7 +12,7 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,21 +22,21 @@ public class Pivot implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	public static final AttachmentType<UUIDCustomAttachedData> UUID_ATTACHMENT = AttachmentRegistry.create(
-					Identifier.of(MOD_ID,"uuid"),
+					Identifier.fromNamespaceAndPath(MOD_ID,"uuid"),
 					builder->builder // we are using a builder chain here to configure the attachment data type
 							.initializer(()->UUIDCustomAttachedData.DEFAULT) // a default value to provide if you dont supply one
 							.persistent(UUIDCustomAttachedData.CODEC)
 							.syncWith(UUIDCustomAttachedData.PACKET_CODEC, AttachmentSyncPredicate.all()));
 
 	public static final AttachmentType<LockedCustomAttachedData> LOCKED_ATTACHMENT = AttachmentRegistry.create(
-			Identifier.of(MOD_ID,"locked"),
+			Identifier.fromNamespaceAndPath(MOD_ID,"locked"),
 			builder->builder // we are using a builder chain here to configure the attachment data type
 					.initializer(()->LockedCustomAttachedData.DEFAULT) // a default value to provide if you dont supply one
 					.persistent(LockedCustomAttachedData.CODEC)
 					.syncWith(LockedCustomAttachedData.PACKET_CODEC, AttachmentSyncPredicate.all()));
 
 	public static final AttachmentType<OriginalBlockAttachedData> ORIGINAL_BLOCK_ATTACHMENT = AttachmentRegistry.create(
-			Identifier.of(MOD_ID,"originalblock"),
+			Identifier.fromNamespaceAndPath(MOD_ID,"originalblock"),
 			builder->builder // we are using a builder chain here to configure the attachment data type
 					.initializer(()->OriginalBlockAttachedData.DEFAULT) // a default value to provide if you dont supply one
 					.persistent(OriginalBlockAttachedData.CODEC)
@@ -46,18 +46,18 @@ public class Pivot implements ModInitializer {
 	public void onInitialize() {
 
 
-		PayloadTypeRegistry.playC2S().register(UpdateBlockDisplayPacketC2S.ID, UpdateBlockDisplayPacketC2S.CODEC);
-		PayloadTypeRegistry.playS2C().register(SetSelectedBlockDisplayEntityS2C.ID, SetSelectedBlockDisplayEntityS2C.CODEC);
-		PayloadTypeRegistry.playC2S().register(AlignXYZ.ID, AlignXYZ.CODEC);
-		PayloadTypeRegistry.playC2S().register(NewBlockDisplayEntity.ID, NewBlockDisplayEntity.CODEC);
-		PayloadTypeRegistry.playC2S().register(NewItemDisplayEntity.ID, NewItemDisplayEntity.CODEC);
-		PayloadTypeRegistry.playC2S().register(TakebackBlockEntity.ID, TakebackBlockEntity.CODEC);
-		PayloadTypeRegistry.playC2S().register(UpdateBlockDisplayPos.ID, UpdateBlockDisplayPos.CODEC);
-		PayloadTypeRegistry.playC2S().register(DuplicateBlockDisplay.ID, DuplicateBlockDisplay.CODEC);
-		PayloadTypeRegistry.playC2S().register(LockDisplayEntity.ID, LockDisplayEntity.CODEC);
-		PayloadTypeRegistry.playC2S().register(SetBlockDisplayBlockstate.ID, SetBlockDisplayBlockstate.CODEC);
-		PayloadTypeRegistry.playC2S().register(ChangeBlockDisplayState.ID, ChangeBlockDisplayState.CODEC);
-		PayloadTypeRegistry.playC2S().register(SetItemDisplayContextPacket.ID, SetItemDisplayContextPacket.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(UpdateBlockDisplayPacketC2S.ID, UpdateBlockDisplayPacketC2S.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(SetSelectedBlockDisplayEntityS2C.ID, SetSelectedBlockDisplayEntityS2C.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(AlignXYZ.ID, AlignXYZ.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(NewBlockDisplayEntity.ID, NewBlockDisplayEntity.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(NewItemDisplayEntity.ID, NewItemDisplayEntity.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(TakebackBlockEntity.ID, TakebackBlockEntity.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(UpdateBlockDisplayPos.ID, UpdateBlockDisplayPos.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(DuplicateBlockDisplay.ID, DuplicateBlockDisplay.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(LockDisplayEntity.ID, LockDisplayEntity.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(SetBlockDisplayBlockstate.ID, SetBlockDisplayBlockstate.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(ChangeBlockDisplayState.ID, ChangeBlockDisplayState.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(SetItemDisplayContextPacket.ID, SetItemDisplayContextPacket.CODEC);
 
 
 		Listener.registerListeners();

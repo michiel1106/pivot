@@ -1,22 +1,22 @@
 package bikerboys.pivot.networking.packets;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
-
 import static bikerboys.pivot.Pivot.MOD_ID;
 
-public record AlignXYZ(String uuid, String coord) implements CustomPayload {
-    public static final Identifier UPDATE_BLOCK_DISPLAY_ID = Identifier.of(MOD_ID, "align_x_y_z");
-    public static final Id<AlignXYZ> ID = new Id<>(AlignXYZ.UPDATE_BLOCK_DISPLAY_ID);
-    public static final PacketCodec<RegistryByteBuf, AlignXYZ> CODEC = PacketCodec.tuple(PacketCodecs.STRING, AlignXYZ::uuid, PacketCodecs.STRING, AlignXYZ::coord, AlignXYZ::new);
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+
+public record AlignXYZ(String uuid, String coord) implements CustomPacketPayload {
+    public static final Identifier UPDATE_BLOCK_DISPLAY_ID = Identifier.fromNamespaceAndPath(MOD_ID, "align_x_y_z");
+    public static final Type<AlignXYZ> ID = new Type<>(AlignXYZ.UPDATE_BLOCK_DISPLAY_ID);
+    public static final StreamCodec<RegistryFriendlyByteBuf, AlignXYZ> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, AlignXYZ::uuid, ByteBufCodecs.STRING_UTF8, AlignXYZ::coord, AlignXYZ::new);
 
 
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

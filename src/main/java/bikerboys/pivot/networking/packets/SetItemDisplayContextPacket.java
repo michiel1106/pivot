@@ -1,29 +1,29 @@
 package bikerboys.pivot.networking.packets;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
-
 import static bikerboys.pivot.Pivot.MOD_ID;
+
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
 public record SetItemDisplayContextPacket(
         String uuid,
         String context
-) implements CustomPayload {
-    public static final Identifier UPDATE_BLOCK_DISPLAY_ID = Identifier.of(MOD_ID, "set_item_display_context");
-    public static final Id<SetItemDisplayContextPacket> ID = new Id<>(UPDATE_BLOCK_DISPLAY_ID);
+) implements CustomPacketPayload {
+    public static final Identifier UPDATE_BLOCK_DISPLAY_ID = Identifier.fromNamespaceAndPath(MOD_ID, "set_item_display_context");
+    public static final Type<SetItemDisplayContextPacket> ID = new Type<>(UPDATE_BLOCK_DISPLAY_ID);
 
-    public static final PacketCodec<RegistryByteBuf, SetItemDisplayContextPacket> CODEC =
-            PacketCodec.tuple(
-                    PacketCodecs.STRING, SetItemDisplayContextPacket::uuid,
-                    PacketCodecs.STRING, SetItemDisplayContextPacket::context,
+    public static final StreamCodec<RegistryFriendlyByteBuf, SetItemDisplayContextPacket> CODEC =
+            StreamCodec.composite(
+                    ByteBufCodecs.STRING_UTF8, SetItemDisplayContextPacket::uuid,
+                    ByteBufCodecs.STRING_UTF8, SetItemDisplayContextPacket::context,
                     SetItemDisplayContextPacket::new
             );
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

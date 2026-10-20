@@ -8,11 +8,12 @@
 		"Bikerboys"
 	],
 	"contact": {
-		"sources": "https://github.com/michiel1106/pivot-1.21.8"
+		"sources": "https://github.com/YoavTC/pivot"
 	},
 	"license": "MIT",
 	"icon": "assets/pivot/icon.png",
 	"environment": "*",
+	"accessWidener": "pivot.classtweaker",
 	"entrypoints": {
 		"main": [
 			"bikerboys.pivot.Pivot"
@@ -29,12 +30,9 @@
 		}
 	],
 	"depends": {
-		"fabricloader": ">=0.16.2",
-		"minecraft": "~1.21.6",
-		"java": ">=21",
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
 		"fabric-api": "*"
-	},
-	"suggests": {
-		"another-mod": "*"
 	}
 }

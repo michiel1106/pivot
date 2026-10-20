@@ -6,14 +6,10 @@ import bikerboys.pivot.attachmenttype.OriginalBlockAttachedData;
 import bikerboys.pivot.attachmenttype.UUIDCustomAttachedData;
 
 import com.mojang.serialization.DynamicOps;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.ErrorReporter;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.player.Player;
 import org.joml.Quaternionf;
 
 import java.util.UUID;
@@ -59,57 +55,57 @@ public class Util {
     }
 
 
-    public static String getUuidFromDisplayEntity(DisplayEntity displayEntity) {
+    public static String getUuidFromDisplayEntity(Display displayEntity) {
 
         UUIDCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
 
         return attachedOrCreate.uuid();
     }
 
-    public static void setUuidDisplayEntity(DisplayEntity displayEntity, String string) {
+    public static void setUuidDisplayEntity(Display displayEntity, String string) {
         UUIDCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
 
        displayEntity.setAttached(Pivot.UUID_ATTACHMENT, attachedOrCreate.setUuid(string));
     }
 
-    public static void setUuidDisplayEntity(DisplayEntity displayEntity, PlayerEntity player) {
+    public static void setUuidDisplayEntity(Display displayEntity, Player player) {
         UUIDCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
 
-        displayEntity.setAttached(Pivot.UUID_ATTACHMENT, attachedOrCreate.setUuid(player.getUuidAsString()));
+        displayEntity.setAttached(Pivot.UUID_ATTACHMENT, attachedOrCreate.setUuid(player.getStringUUID()));
     }
 
-    public static void setUuidDisplayEntity(DisplayEntity displayEntity, ServerPlayerEntity player) {
+    public static void setUuidDisplayEntity(Display displayEntity, ServerPlayer player) {
         UUIDCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.UUID_ATTACHMENT);
 
-        displayEntity.setAttached(Pivot.UUID_ATTACHMENT, attachedOrCreate.setUuid(player.getUuidAsString()));
+        displayEntity.setAttached(Pivot.UUID_ATTACHMENT, attachedOrCreate.setUuid(player.getStringUUID()));
     }
 
 
-    public static void setLockedDisplayEntity(DisplayEntity displayEntity) {
+    public static void setLockedDisplayEntity(Display displayEntity) {
         LockedCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.LOCKED_ATTACHMENT);
 
         displayEntity.setAttached(Pivot.LOCKED_ATTACHMENT, attachedOrCreate.setLocked(true));
     }
 
-    public static void setLockedDisplayEntity(DisplayEntity displayEntity, boolean b) {
+    public static void setLockedDisplayEntity(Display displayEntity, boolean b) {
         LockedCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.LOCKED_ATTACHMENT);
 
         displayEntity.setAttached(Pivot.LOCKED_ATTACHMENT, attachedOrCreate.setLocked(b));
     }
 
-    public static boolean getLockedDisplayEntity(DisplayEntity displayEntity) {
+    public static boolean getLockedDisplayEntity(Display displayEntity) {
         return displayEntity.getAttachedOrCreate(Pivot.LOCKED_ATTACHMENT).locked();
     }
 
 
-    public static void setUnlockedDisplayEntity(DisplayEntity displayEntity) {
+    public static void setUnlockedDisplayEntity(Display displayEntity) {
         LockedCustomAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.LOCKED_ATTACHMENT);
 
         displayEntity.setAttached(Pivot.LOCKED_ATTACHMENT, attachedOrCreate.setLocked(false));
     }
 
 
-    public static void setOriginalBlockDisplayEntity(DisplayEntity displayEntity, String id) {
+    public static void setOriginalBlockDisplayEntity(Display displayEntity, String id) {
         OriginalBlockAttachedData attachedOrCreate = displayEntity.getAttachedOrCreate(Pivot.ORIGINAL_BLOCK_ATTACHMENT);
 
         displayEntity.setAttached(Pivot.ORIGINAL_BLOCK_ATTACHMENT, attachedOrCreate.setUuid(id));
@@ -117,7 +113,7 @@ public class Util {
 
 
 
-    public static String getOriginalBlockDisplayEntity(DisplayEntity displayEntity) {
+    public static String getOriginalBlockDisplayEntity(Display displayEntity) {
         return displayEntity.getAttachedOrCreate(Pivot.ORIGINAL_BLOCK_ATTACHMENT).blockid();
     }
 
